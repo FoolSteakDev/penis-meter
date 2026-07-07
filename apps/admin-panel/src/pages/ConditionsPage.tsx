@@ -181,17 +181,24 @@ export default function ConditionsPage() {
       </table>
 
       <h2>Create new condition</h2>
+      <p style={{ fontSize: 13, color: '#666', maxWidth: 400 }}>
+        Handler codes ({creatableCodes.join(', ') || 'none available'}) have special logic. Any other
+        code (e.g. "jackpot") creates a plain random min..max condition with no special logic.
+      </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
         <label>
           Code
-          <select value={newCode} onChange={(e) => setNewCode(e.target.value)}>
-            <option value="">- select handler code -</option>
+          <input
+            value={newCode}
+            onChange={(e) => setNewCode(e.target.value)}
+            list="available-codes"
+            placeholder="напр. jackpot або weather"
+          />
+          <datalist id="available-codes">
             {creatableCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
+              <option key={code} value={code} />
             ))}
-          </select>
+          </datalist>
         </label>
         <label>
           Name

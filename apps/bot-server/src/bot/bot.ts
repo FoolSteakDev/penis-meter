@@ -1,5 +1,6 @@
 import { Telegraf } from 'telegraf';
 import { envConfig } from '../config/env.config';
+import { recordChatMessage } from '../services/chatActivity.service';
 import { handleGlobalRatingCommand } from './commands/globalRating.command';
 import { handleMetrCommand } from './commands/metr.command';
 import { handleRatingCommand } from './commands/rating.command';
@@ -14,6 +15,13 @@ const BOT_COMMANDS = [
 
 export function createBot(): Telegraf {
   const bot = new Telegraf(envConfig.botToken);
+
+  bot.use((ctx, next) => {
+    if (ctx.chat) {
+      recordChatMessage(ctx.chat.id);
+    }
+    return next();
+  });
 
   bot.command('metr', handleMetrCommand);
   bot.command('status', handleStatusCommand);

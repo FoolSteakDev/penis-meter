@@ -26,6 +26,8 @@ export interface UpdateConditionRequest {
   config?: Record<string, unknown>;
 }
 
+const CODE_PATTERN = /^[a-z][a-z0-9_]*$/;
+
 @Route('conditions')
 @Tags('Conditions')
 export class ConditionsController extends Controller {
@@ -35,6 +37,11 @@ export class ConditionsController extends Controller {
     return docs.map(mapConditionDocumentToDto);
   }
 
+  /**
+   * Коди, для яких у коді бота є спеціальний handler (погода, дуель тощо).
+   * Будь-який інший `code` теж можна використати при створенні умови - тоді
+   * вона працюватиме як звичайний рандом у [minDelta, maxDelta] без спецлогіки.
+   */
   @Get('available-codes')
   public async listAvailableCodes(): Promise<string[]> {
     return Array.from(modifierRegistry.keys());
@@ -42,8 +49,11 @@ export class ConditionsController extends Controller {
 
   @Post()
   public async createCondition(@Body() body: CreateConditionRequest): Promise<ConditionDto> {
-    if (!modifierRegistry.has(body.code)) {
-      throw new ApiError(400, `No modifier handler registered for code "${body.code}"`);
+    if (!CODE_PATTERN.test(body.code)) {
+      throw new ApiError(
+        400,
+        'Code must start with a lowercase letter and contain only lowercase letters, digits and underscores',
+      );
     }
 
     const existing = await ConditionModel.findOne({ code: body.code });

@@ -3,6 +3,7 @@ import { ConditionModel } from '../database/models/condition.model';
 import type { UserHydratedDocument } from '../database/models/user.model';
 import { mapConditionDocumentToDto } from '../mappers/condition.mapper';
 import { mapUserDocumentToDto } from '../mappers/user.mapper';
+import { genericModifier } from '../modifiers/generic.modifier';
 import { modifierRegistry } from '../modifiers/modifier.registry';
 import type { GrowthModifierContext } from '../modifiers/growthModifier.types';
 import { nowUtc } from '../utils/date.util';
@@ -39,10 +40,9 @@ export async function performMeasurement(
     null;
 
   for (const conditionDoc of shuffledConditions) {
-    const handler = modifierRegistry.get(conditionDoc.code);
-    if (!handler) {
-      continue;
-    }
+    // Умови без зареєстрованого handler'а (кастомні, створені через адмінку)
+    // обробляються generic-фолбеком - простий рандом у [min, max].
+    const handler = modifierRegistry.get(conditionDoc.code) ?? genericModifier;
 
     const context: GrowthModifierContext = {
       user: userDto,
