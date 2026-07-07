@@ -10,7 +10,8 @@ import { envConfig } from './config/env.config';
 export function createApp(): Express {
   const app = express();
 
-  app.use(cors({ origin: envConfig.adminCorsOrigin }));
+  const corsOrigin = envConfig.adminCorsOrigins.includes('*') ? '*' : envConfig.adminCorsOrigins;
+  app.use(cors({ origin: corsOrigin }));
   app.use(express.json());
 
   app.get('/health', (_req, res) => {
