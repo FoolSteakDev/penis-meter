@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-cream: #fbf3de;
+  --color-cream-dark: #f3e7c9;
+  --color-navy: #1b3a5c;
+  --color-navy-dark: #122a44;
+  --color-gold: #f2b705;
+  --color-gold-light: #fbd87f;
+  --color-gold-dark: #c99400;
+  --color-ember: #f2711c;
+  --color-ruby: #d64545;
+}
+
+body {
+  background-color: var(--color-cream);
+}

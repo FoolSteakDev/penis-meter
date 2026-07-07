@@ -4,21 +4,40 @@ import UsersPage from './pages/UsersPage';
 
 type Tab = 'users' | 'conditions';
 
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'users', label: 'Користувачі' },
+  { id: 'conditions', label: 'Умови росту' },
+];
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('users');
 
   return (
-    <div style={{ fontFamily: 'sans-serif', maxWidth: 960, margin: '0 auto', padding: 24 }}>
-      <h1>Penis Meter - Admin</h1>
-      <nav style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        <button onClick={() => setTab('users')} disabled={tab === 'users'}>
-          Users
-        </button>
-        <button onClick={() => setTab('conditions')} disabled={tab === 'conditions'}>
-          Conditions
-        </button>
-      </nav>
-      {tab === 'users' ? <UsersPage /> : <ConditionsPage />}
+    <div className="min-h-screen bg-cream">
+      <header className="border-b-4 border-gold bg-navy">
+        <div className="mx-auto max-w-5xl px-6 py-5">
+          <h1 className="text-2xl font-extrabold tracking-tight text-gold">📏 Penis Meter — Admin</h1>
+          <p className="mt-1 text-sm text-cream/70">Керування користувачами та умовами росту</p>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-6 py-8">
+        <nav className="mb-6 flex gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                tab === t.id ? 'bg-gold text-navy-dark shadow-sm' : 'bg-white text-navy/60 hover:bg-cream-dark'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
+        {tab === 'users' ? <UsersPage /> : <ConditionsPage />}
+      </main>
     </div>
   );
 }

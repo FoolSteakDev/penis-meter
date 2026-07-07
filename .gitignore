@@ -5,5 +5,6 @@ build/
 !.env.example
 *.log
 .DS_Store
+*.tsbuildinfo
 
 apps/bot-server/.env

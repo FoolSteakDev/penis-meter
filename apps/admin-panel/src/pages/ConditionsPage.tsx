@@ -1,26 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api, type ConditionDto } from '../api/client';
-
-interface EditableFields {
-  chance: string;
-  minDelta: string;
-  maxDelta: string;
-  isEnabled: boolean;
-}
-
-function toEditable(condition: ConditionDto): EditableFields {
-  return {
-    chance: String(condition.chance),
-    minDelta: String(condition.minDelta),
-    maxDelta: String(condition.maxDelta),
-    isEnabled: condition.isEnabled,
-  };
-}
+import { EditableNumberField } from '../components/EditableNumberField';
+import { ToggleSwitch } from '../components/ToggleSwitch';
 
 export default function ConditionsPage() {
   const [conditions, setConditions] = useState<ConditionDto[]>([]);
   const [availableCodes, setAvailableCodes] = useState<string[]>([]);
-  const [edits, setEdits] = useState<Record<string, EditableFields>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +15,11 @@ export default function ConditionsPage() {
   const [newChance, setNewChance] = useState('0.1');
   const [newMinDelta, setNewMinDelta] = useState('0');
   const [newMaxDelta, setNewMaxDelta] = useState('1');
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    load();
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -40,7 +30,6 @@ export default function ConditionsPage() {
         api.listAvailableCodes(),
       ]);
       setConditions(conditionsResponse);
-      setEdits(Object.fromEntries(conditionsResponse.map((c) => [c.id, toEditable(c)])));
       setAvailableCodes(codesResponse);
     } catch (err) {
       setError((err as Error).message);
@@ -49,39 +38,19 @@ export default function ConditionsPage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
-
   const usedCodes = new Set(conditions.map((c) => c.code));
   const creatableCodes = availableCodes.filter((code) => !usedCodes.has(code));
 
-  function updateEdit(id: string, patch: Partial<EditableFields>) {
-    setEdits((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
-  }
-
-  async function handleSave(condition: ConditionDto) {
-    const edit = edits[condition.id];
-    if (!edit) return;
-    try {
-      await api.updateCondition(condition.id, {
-        chance: Number(edit.chance),
-        minDelta: Number(edit.minDelta),
-        maxDelta: Number(edit.maxDelta),
-        isEnabled: edit.isEnabled,
-      });
-      await load();
-    } catch (err) {
-      setError((err as Error).message);
-    }
+  function patchLocal(id: string, updated: ConditionDto) {
+    setConditions((prev) => prev.map((c) => (c.id === id ? updated : c)));
   }
 
   async function handleDelete(condition: ConditionDto) {
     if (condition.isProtected) return;
-    if (!confirm(`Delete condition "${condition.name}"?`)) return;
+    if (!confirm(`Видалити умову "${condition.name}"?`)) return;
     try {
       await api.deleteCondition(condition.id);
-      await load();
+      setConditions((prev) => prev.filter((c) => c.id !== condition.id));
     } catch (err) {
       setError((err as Error).message);
     }
@@ -89,8 +58,10 @@ export default function ConditionsPage() {
 
   async function handleCreate() {
     if (!newCode || !newName) return;
+    setCreating(true);
+    setError(null);
     try {
-      await api.createCondition({
+      const created = await api.createCondition({
         code: newCode,
         name: newName,
         description: newDescription || null,
@@ -98,130 +69,180 @@ export default function ConditionsPage() {
         minDelta: Number(newMinDelta),
         maxDelta: Number(newMaxDelta),
       });
+      setConditions((prev) => [...prev, created]);
       setNewCode('');
       setNewName('');
       setNewDescription('');
       setNewChance('0.1');
       setNewMinDelta('0');
       setNewMaxDelta('1');
-      await load();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setCreating(false);
     }
   }
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) {
+    return <p className="text-navy/60">Завантаження...</p>;
+  }
+
+  const inputClass =
+    'rounded-md border border-navy/20 px-3 py-1.5 text-sm text-navy transition-colors focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/40';
 
   return (
-    <div>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="space-y-8">
+      {error && <p className="rounded-lg border border-ruby/20 bg-ruby/10 px-4 py-2 text-sm text-ruby">{error}</p>}
 
-      <table cellPadding={8} style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 32 }}>
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid #ccc' }}>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Enabled</th>
-            <th>Chance</th>
-            <th>Min delta</th>
-            <th>Max delta</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {conditions.map((condition) => {
-            const edit = edits[condition.id] ?? toEditable(condition);
-            return (
-              <tr key={condition.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td>{condition.code}</td>
-                <td>{condition.name}</td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={edit.isEnabled}
-                    onChange={(e) => updateEdit(condition.id, { isEnabled: e.target.checked })}
+      <div className="overflow-x-auto rounded-xl border border-navy/10 bg-white shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="bg-navy text-cream">
+              <th className="px-4 py-3 font-semibold">Код</th>
+              <th className="px-4 py-3 font-semibold">Назва</th>
+              <th className="px-4 py-3 font-semibold">Увімкнено</th>
+              <th className="px-4 py-3 font-semibold">Шанс</th>
+              <th className="px-4 py-3 font-semibold">Мін. дельта</th>
+              <th className="px-4 py-3 font-semibold">Макс. дельта</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-navy/10">
+            {conditions.map((condition) => (
+              <tr key={condition.id} className="transition-colors hover:bg-cream/60">
+                <td className="px-4 py-2 font-mono text-xs text-navy/70">{condition.code}</td>
+                <td className="px-4 py-2 font-medium text-navy">{condition.name}</td>
+                <td className="px-4 py-2">
+                  <ToggleSwitch
+                    checked={condition.isEnabled}
+                    onSave={async (isEnabled) => {
+                      const updated = await api.updateCondition(condition.id, { isEnabled });
+                      patchLocal(condition.id, updated);
+                    }}
                   />
                 </td>
-                <td>
-                  <input
-                    type="number"
+                <td className="px-4 py-2">
+                  <EditableNumberField
+                    value={condition.chance}
                     step="0.01"
-                    value={edit.chance}
-                    onChange={(e) => updateEdit(condition.id, { chance: e.target.value })}
-                    style={{ width: 70 }}
                     disabled={condition.code === 'base'}
+                    onSave={async (chance) => {
+                      const updated = await api.updateCondition(condition.id, { chance });
+                      patchLocal(condition.id, updated);
+                    }}
                   />
                 </td>
-                <td>
-                  <input
-                    type="number"
-                    value={edit.minDelta}
-                    onChange={(e) => updateEdit(condition.id, { minDelta: e.target.value })}
-                    style={{ width: 70 }}
+                <td className="px-4 py-2">
+                  <EditableNumberField
+                    value={condition.minDelta}
+                    onSave={async (minDelta) => {
+                      const updated = await api.updateCondition(condition.id, { minDelta });
+                      patchLocal(condition.id, updated);
+                    }}
                   />
                 </td>
-                <td>
-                  <input
-                    type="number"
-                    value={edit.maxDelta}
-                    onChange={(e) => updateEdit(condition.id, { maxDelta: e.target.value })}
-                    style={{ width: 70 }}
+                <td className="px-4 py-2">
+                  <EditableNumberField
+                    value={condition.maxDelta}
+                    onSave={async (maxDelta) => {
+                      const updated = await api.updateCondition(condition.id, { maxDelta });
+                      patchLocal(condition.id, updated);
+                    }}
                   />
                 </td>
-                <td style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => handleSave(condition)}>Save</button>
-                  <button onClick={() => handleDelete(condition)} disabled={condition.isProtected}>
-                    Delete
+                <td className="px-4 py-2 text-right">
+                  <button
+                    onClick={() => handleDelete(condition)}
+                    disabled={condition.isProtected}
+                    className="rounded-md border border-ruby/30 px-2.5 py-1 text-xs font-medium text-ruby transition-colors hover:bg-ruby/10 disabled:cursor-not-allowed disabled:border-navy/10 disabled:text-navy/30"
+                  >
+                    Видалити
                   </button>
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <h2>Create new condition</h2>
-      <p style={{ fontSize: 13, color: '#666', maxWidth: 400 }}>
-        Handler codes ({creatableCodes.join(', ') || 'none available'}) have special logic. Any other
-        code (e.g. "jackpot") creates a plain random min..max condition with no special logic.
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
-        <label>
-          Code
-          <input
-            value={newCode}
-            onChange={(e) => setNewCode(e.target.value)}
-            list="available-codes"
-            placeholder="напр. jackpot або weather"
-          />
-          <datalist id="available-codes">
-            {creatableCodes.map((code) => (
-              <option key={code} value={code} />
             ))}
-          </datalist>
-        </label>
-        <label>
-          Name
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} />
-        </label>
-        <label>
-          Description
-          <input value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
-        </label>
-        <label>
-          Chance (0..1)
-          <input type="number" step="0.01" value={newChance} onChange={(e) => setNewChance(e.target.value)} />
-        </label>
-        <label>
-          Min delta
-          <input type="number" value={newMinDelta} onChange={(e) => setNewMinDelta(e.target.value)} />
-        </label>
-        <label>
-          Max delta
-          <input type="number" value={newMaxDelta} onChange={(e) => setNewMaxDelta(e.target.value)} />
-        </label>
-        <button onClick={handleCreate} disabled={!newCode || !newName}>
-          Create
+            {conditions.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-navy/40">
+                  Ще немає умов
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="rounded-xl border border-gold/40 bg-white p-6 shadow-sm">
+        <h2 className="mb-1 text-lg font-bold text-navy">Нова умова</h2>
+        <p className="mb-4 text-xs text-navy/60">
+          Коди зі спецлогікою: <span className="font-mono">{availableCodes.join(', ') || '—'}</span>
+          {creatableCodes.length === 0 && availableCodes.length > 0 ? ' (усі вже використані нижче)' : ''}. Будь-який
+          інший код (напр. <span className="font-mono">jackpot</span>) створює звичайну умову з рандомом у діапазоні
+          мін..макс без спецлогіки.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm font-medium text-navy">
+            Код
+            <input
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value)}
+              list="available-codes"
+              placeholder="напр. jackpot"
+              className={inputClass}
+            />
+            <datalist id="available-codes">
+              {creatableCodes.map((code) => (
+                <option key={code} value={code} />
+              ))}
+            </datalist>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-navy">
+            Назва
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} className={inputClass} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-navy sm:col-span-2">
+            Опис
+            <input
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-navy">
+            Шанс (0..1)
+            <input
+              type="number"
+              step="0.01"
+              value={newChance}
+              onChange={(e) => setNewChance(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-navy">
+            Мін. дельта
+            <input
+              type="number"
+              value={newMinDelta}
+              onChange={(e) => setNewMinDelta(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-navy">
+            Макс. дельта
+            <input
+              type="number"
+              value={newMaxDelta}
+              onChange={(e) => setNewMaxDelta(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+        </div>
+        <button
+          onClick={handleCreate}
+          disabled={!newCode || !newName || creating}
+          className="mt-5 rounded-md bg-gold px-4 py-2 text-sm font-semibold text-navy-dark shadow-sm transition-colors hover:bg-gold-dark disabled:cursor-not-allowed disabled:bg-navy/10 disabled:text-navy/30"
+        >
+          {creating ? 'Створення...' : 'Створити'}
         </button>
       </div>
     </div>
