@@ -1,0 +1,16 @@
+{
+  "name": "penis-meter",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/bot-server",
+    "apps/admin-panel"
+  ],
+  "scripts": {
+    "dev:bot": "npm run dev --workspace=apps/bot-server",
+    "dev:admin": "npm run dev --workspace=apps/admin-panel",
+    "build:bot": "npm run build --workspace=apps/bot-server",
+    "build:admin": "npm run build --workspace=apps/admin-panel",
+    "seed": "npm run seed --workspace=apps/bot-server"
+  }
+}
