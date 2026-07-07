@@ -15,7 +15,7 @@ export async function handleRatingCommand(ctx: Context): Promise<void> {
   }
 
   const lines = rating.map((user, index) => {
-    const label = user.username ? `@${user.username}` : user.firstName;
+    const label = user.username ?? user.firstName;
     return `${index + 1}. ${label} - ${user.value} см (${getSizeTierLabel(user.value)})`;
   });
 

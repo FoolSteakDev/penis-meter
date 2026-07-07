@@ -31,7 +31,7 @@ export class DuelModifier implements GrowthModifierHandler {
 
     const opponent = opponents[Math.floor(Math.random() * opponents.length)];
     const amount = Math.round(randomInRange(Math.abs(minDelta), Math.abs(maxDelta)) * 100) / 100;
-    const opponentLabel = opponent.username ? `@${opponent.username}` : opponent.first_name;
+    const opponentLabel = opponent.username ?? opponent.first_name;
     const invokerWins = Math.random() < 0.5;
 
     if (invokerWins) {
