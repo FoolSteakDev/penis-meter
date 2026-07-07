@@ -26,7 +26,7 @@ export class MoonPhaseModifier implements GrowthModifierHandler {
     const message =
       moon.fullness >= FULL_MOON_THRESHOLD
         ? `🌕 ${moon.name}! Вовкулаче зростання цієї ночі неконтрольоване!`
-        : `🌗 Фаза Місяця: ${moon.name}.`;
+        : `🌗 Зараз ${moon.name.toLowerCase()}.`;
 
     return { delta, message };
   }

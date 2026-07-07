@@ -38,14 +38,14 @@ export class DuelModifier implements GrowthModifierHandler {
       await UserModel.updateOne({ _id: opponent._id }, { $inc: { value: -amount } });
       return {
         delta: amount,
-        message: `⚔️ Дуель з ${opponentLabel}! Ти переміг і забрав ${amount} см собі!`,
+        message: `⚔️ Зустрів ${opponentLabel}! Ти переміг і забрав ${amount} см собі!`,
       };
     }
 
     await UserModel.updateOne({ _id: opponent._id }, { $inc: { value: amount } });
     return {
       delta: -amount,
-      message: `⚔️ Дуель з ${opponentLabel}! Ти програв і віддав ${amount} см!`,
+      message: `⚔️ Зустрів ${opponentLabel}! Ти програв і віддав ${amount} см!`,
     };
   }
 }

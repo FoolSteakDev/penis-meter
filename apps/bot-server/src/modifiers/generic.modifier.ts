@@ -18,11 +18,11 @@ export class GenericModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { minDelta, maxDelta, name } = context.condition;
+    const { minDelta, maxDelta } = context.condition;
     const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
     return {
       delta,
-      message: `${name}!`,
+      message: '🎉 Спрацювала особлива умова!',
     };
   }
 }
