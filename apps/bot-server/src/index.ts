@@ -19,8 +19,10 @@ async function main(): Promise<void> {
   bot.launch(() => {
     console.log('[bot] started (long polling)');
   }).catch((error) => {
-    console.error('[bot] launch failed', error);
-    process.exit(1);
+    // Не завершуємо процес - інакше збій бота (напр. 409 Conflict через
+    // паралельний запуск, тимчасова мережева проблема) кладе і Express
+    // (адмін API, /health), а він має жити незалежно від стану бота.
+    console.error('[bot] launch failed - Express/API продовжують працювати', error);
   });
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
