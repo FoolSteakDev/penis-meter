@@ -1,5 +1,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
 
+export interface UserWorkDto {
+  schedule: number[];
+  lastWeekend: string | null;
+}
+
 export interface UserDto {
   id: string;
   telegramId: number;
@@ -8,8 +13,19 @@ export interface UserDto {
   value: number;
   lastMeasurementAt: string | null;
   chats: number[];
+  work: UserWorkDto;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateUserRequest {
+  value?: number;
+  username?: string | null;
+  firstName?: string;
+  work?: {
+    schedule?: number[];
+    lastWeekend?: string;
+  };
 }
 
 export interface UsersListResponse {
@@ -77,7 +93,7 @@ export const api = {
   listUsers: (page = 1, limit = 50) =>
     request<UsersListResponse>(`/users?page=${page}&limit=${limit}`),
 
-  updateUser: (id: string, body: { value?: number }) =>
+  updateUser: (id: string, body: UpdateUserRequest) =>
     request<UserDto>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
   listConditions: () => request<ConditionDto[]>('/conditions'),

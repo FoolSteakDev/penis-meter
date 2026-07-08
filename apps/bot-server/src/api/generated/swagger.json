@@ -7,6 +7,28 @@
 		"requestBodies": {},
 		"responses": {},
 		"schemas": {
+			"UserWorkDto": {
+				"properties": {
+					"schedule": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
+					},
+					"lastWeekend": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					}
+				},
+				"required": [
+					"schedule",
+					"lastWeekend"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"UserDto": {
 				"properties": {
 					"id": {
@@ -39,6 +61,9 @@
 						},
 						"type": "array"
 					},
+					"work": {
+						"$ref": "#/components/schemas/UserWorkDto"
+					},
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
@@ -56,6 +81,7 @@
 					"value",
 					"lastMeasurementAt",
 					"chats",
+					"work",
 					"createdAt",
 					"updatedAt"
 				],
@@ -92,6 +118,22 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"UpdateUserWorkRequest": {
+				"properties": {
+					"schedule": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
+					},
+					"lastWeekend": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
 			"UpdateUserRequest": {
 				"properties": {
 					"value": {
@@ -104,6 +146,9 @@
 					},
 					"firstName": {
 						"type": "string"
+					},
+					"work": {
+						"$ref": "#/components/schemas/UpdateUserWorkRequest"
 					}
 				},
 				"type": "object",

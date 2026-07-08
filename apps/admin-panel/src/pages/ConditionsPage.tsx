@@ -115,6 +115,7 @@ export default function ConditionsPage() {
                 <td className="px-4 py-2">
                   <ToggleSwitch
                     checked={condition.isEnabled}
+                    disabled={condition.isProtected}
                     onSave={async (isEnabled) => {
                       const updated = await api.updateCondition(condition.id, { isEnabled });
                       patchLocal(condition.id, updated);

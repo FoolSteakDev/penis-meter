@@ -11,10 +11,16 @@ export interface UsersListResponse {
   limit: number;
 }
 
+export interface UpdateUserWorkRequest {
+  schedule?: number[];
+  lastWeekend?: string;
+}
+
 export interface UpdateUserRequest {
   value?: number;
   username?: string | null;
   firstName?: string;
+  work?: UpdateUserWorkRequest;
 }
 
 @Route('users')
@@ -56,6 +62,20 @@ export class UsersController extends Controller {
     }
     if (body.firstName !== undefined) {
       update.first_name = body.firstName;
+    }
+    if (body.work?.schedule !== undefined) {
+      const schedule = body.work.schedule;
+      if (schedule.length !== 2 || schedule.some((n) => !Number.isFinite(n) || n <= 0)) {
+        throw new ApiError(400, 'work.schedule must be exactly two positive numbers [workDays, restDays]');
+      }
+      update['work.schedule'] = schedule;
+    }
+    if (body.work?.lastWeekend !== undefined) {
+      const parsed = new Date(body.work.lastWeekend);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new ApiError(400, 'work.lastWeekend must be a valid date');
+      }
+      update['work.last_weekend'] = parsed;
     }
 
     const updated = await UserModel.findByIdAndUpdate(id, update, { new: true });

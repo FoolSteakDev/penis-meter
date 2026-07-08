@@ -1,4 +1,4 @@
-import { isWeekendUtc } from '../utils/date.util';
+import { isRestDayForUser } from '../utils/workSchedule.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
 
 function randomInRange(min: number, max: number): number {
@@ -8,8 +8,8 @@ function randomInRange(min: number, max: number): number {
 export class WeekendModifier implements GrowthModifierHandler {
   code = 'weekend';
 
-  async isEligible(_context: GrowthModifierContext): Promise<boolean> {
-    return isWeekendUtc();
+  async isEligible(context: GrowthModifierContext): Promise<boolean> {
+    return isRestDayForUser(context.user.work);
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {

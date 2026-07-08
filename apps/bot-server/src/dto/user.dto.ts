@@ -1,3 +1,8 @@
+export interface UserWorkDto {
+  schedule: number[];
+  lastWeekend: Date | null;
+}
+
 export interface UserDto {
   id: string;
   telegramId: number;
@@ -6,6 +11,7 @@ export interface UserDto {
   value: number;
   lastMeasurementAt: Date | null;
   chats: number[];
+  work: UserWorkDto;
   createdAt: Date;
   updatedAt: Date;
 }

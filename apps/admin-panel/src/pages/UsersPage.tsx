@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, type UserDto } from '../api/client';
+import { EditableDateField } from '../components/EditableDateField';
 import { EditableNumberField } from '../components/EditableNumberField';
 
 export default function UsersPage() {
@@ -24,9 +25,26 @@ export default function UsersPage() {
     }
   }
 
+  function applyUpdate(id: string, updated: UserDto) {
+    setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+  }
+
   async function handleSaveValue(user: UserDto, value: number) {
-    const updated = await api.updateUser(user.id, { value });
-    setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
+    applyUpdate(user.id, await api.updateUser(user.id, { value }));
+  }
+
+  async function handleSaveWorkDays(user: UserDto, workDays: number) {
+    const restDays = user.work.schedule[1] ?? 2;
+    applyUpdate(user.id, await api.updateUser(user.id, { work: { schedule: [workDays, restDays] } }));
+  }
+
+  async function handleSaveRestDays(user: UserDto, restDays: number) {
+    const workDays = user.work.schedule[0] ?? 5;
+    applyUpdate(user.id, await api.updateUser(user.id, { work: { schedule: [workDays, restDays] } }));
+  }
+
+  async function handleSaveLastWeekend(user: UserDto, lastWeekend: string) {
+    applyUpdate(user.id, await api.updateUser(user.id, { work: { lastWeekend } }));
   }
 
   if (loading) {
@@ -34,7 +52,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-navy/10 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-xl border border-navy/10 bg-white shadow-sm">
       {error && <p className="border-b border-ruby/20 bg-ruby/10 px-4 py-2 text-sm text-ruby">{error}</p>}
       <table className="w-full text-left text-sm">
         <thead>
@@ -42,6 +60,8 @@ export default function UsersPage() {
             <th className="px-4 py-3 font-semibold">Telegram ID</th>
             <th className="px-4 py-3 font-semibold">Користувач</th>
             <th className="px-4 py-3 font-semibold">Значення (см)</th>
+            <th className="px-4 py-3 font-semibold">Графік (роб./вих.)</th>
+            <th className="px-4 py-3 font-semibold">Останні вихідні</th>
             <th className="px-4 py-3 font-semibold">Останній вимір</th>
             <th className="px-4 py-3 font-semibold">Чатів</th>
           </tr>
@@ -60,6 +80,27 @@ export default function UsersPage() {
                   onSave={(value) => handleSaveValue(user, value)}
                 />
               </td>
+              <td className="px-4 py-2">
+                <div className="inline-flex items-center gap-1">
+                  <EditableNumberField
+                    value={user.work.schedule[0] ?? 5}
+                    step="1"
+                    onSave={(workDays) => handleSaveWorkDays(user, workDays)}
+                  />
+                  <span className="text-navy/40">/</span>
+                  <EditableNumberField
+                    value={user.work.schedule[1] ?? 2}
+                    step="1"
+                    onSave={(restDays) => handleSaveRestDays(user, restDays)}
+                  />
+                </div>
+              </td>
+              <td className="px-4 py-2">
+                <EditableDateField
+                  value={user.work.lastWeekend}
+                  onSave={(lastWeekend) => handleSaveLastWeekend(user, lastWeekend)}
+                />
+              </td>
               <td className="px-4 py-2 text-navy/70">
                 {user.lastMeasurementAt ? new Date(user.lastMeasurementAt).toLocaleString() : '—'}
               </td>
@@ -68,7 +109,7 @@ export default function UsersPage() {
           ))}
           {users.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-4 py-6 text-center text-navy/40">
+              <td colSpan={7} className="px-4 py-6 text-center text-navy/40">
                 Ще немає користувачів
               </td>
             </tr>

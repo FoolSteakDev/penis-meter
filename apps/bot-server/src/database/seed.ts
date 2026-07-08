@@ -34,11 +34,11 @@ const SEED_CONDITIONS: SeedCondition[] = [
   {
     code: 'weekend',
     name: 'Вихідний бонус',
-    description: 'Додатковий бонус по вихідних (субота, неділя).',
-    chance: 0.15,
+    description: 'Додатковий бонус у вихідний день користувача (за його особистим графіком роботи).',
+    chance: 0.33,
     min_delta: 2,
     max_delta: 6,
-    is_protected: false,
+    is_protected: true,
   },
   {
     code: 'critical',

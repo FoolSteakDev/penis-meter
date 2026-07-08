@@ -10,6 +10,10 @@ export function mapUserDocumentToDto(doc: UserHydratedDocument | UserDocument): 
     value: doc.value,
     lastMeasurementAt: doc.last_measurement_at,
     chats: doc.chats,
+    work: {
+      schedule: doc.work?.schedule ?? [5, 2],
+      lastWeekend: doc.work?.last_weekend ?? null,
+    },
     createdAt: doc.created_at,
     updatedAt: doc.updated_at,
   };

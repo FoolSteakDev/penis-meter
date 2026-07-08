@@ -14,6 +14,15 @@ import type { Request as ExRequest, Response as ExResponse, RequestHandler, Rout
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 const models: TsoaRoute.Models = {
+    "UserWorkDto": {
+        "dataType": "refObject",
+        "properties": {
+            "schedule": {"dataType":"array","array":{"dataType":"double"},"required":true},
+            "lastWeekend": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UserDto": {
         "dataType": "refObject",
         "properties": {
@@ -24,6 +33,7 @@ const models: TsoaRoute.Models = {
             "value": {"dataType":"double","required":true},
             "lastMeasurementAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
             "chats": {"dataType":"array","array":{"dataType":"double"},"required":true},
+            "work": {"ref":"UserWorkDto","required":true},
             "createdAt": {"dataType":"datetime","required":true},
             "updatedAt": {"dataType":"datetime","required":true},
         },
@@ -41,12 +51,22 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateUserWorkRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "schedule": {"dataType":"array","array":{"dataType":"double"}},
+            "lastWeekend": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UpdateUserRequest": {
         "dataType": "refObject",
         "properties": {
             "value": {"dataType":"double"},
             "username": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}]},
             "firstName": {"dataType":"string"},
+            "work": {"ref":"UpdateUserWorkRequest"},
         },
         "additionalProperties": false,
     },
