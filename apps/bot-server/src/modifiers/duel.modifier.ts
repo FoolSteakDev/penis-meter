@@ -1,4 +1,6 @@
-import { UserModel } from '../database/models/user.model';
+import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
+import { registerDuelWin } from '../services/quest.service';
+import { getCurrentRoundNumber } from '../utils/seasonRound.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
 
 function randomInRange(min: number, max: number): number {
@@ -7,6 +9,21 @@ function randomInRange(min: number, max: number): number {
 
 async function findOpponents(chatId: number, telegramId: number) {
   return UserModel.find({ chats: chatId, telegram_id: { $ne: telegramId } });
+}
+
+/**
+ * Дуель зачіпає опонента напряму (не через його власний /metr), тому
+ * round_growth/season_growth/round_best_delta потрібно оновити тут вручну -
+ * інакше підсумки раунду/сезону не побачать цього приросту чи втрати.
+ */
+async function applyOpponentDelta(opponent: UserHydratedDocument, delta: number): Promise<void> {
+  opponent.value = Math.round((opponent.value + delta) * 100) / 100;
+  opponent.round_growth = Math.round((opponent.round_growth + delta) * 100) / 100;
+  opponent.season_growth = Math.round((opponent.season_growth + delta) * 100) / 100;
+  if (opponent.round_best_delta === null || delta > opponent.round_best_delta) {
+    opponent.round_best_delta = delta;
+  }
+  await opponent.save();
 }
 
 export class DuelModifier implements GrowthModifierHandler {
@@ -35,14 +52,22 @@ export class DuelModifier implements GrowthModifierHandler {
     const invokerWins = Math.random() < 0.5;
 
     if (invokerWins) {
-      await UserModel.updateOne({ _id: opponent._id }, { $inc: { value: -amount } });
+      await applyOpponentDelta(opponent, -amount);
+
+      const roundNumber = getCurrentRoundNumber();
+      const questReward = await registerDuelWin(context.user.telegramId, roundNumber);
+      const questNote = questReward ? `\n🎯 Квест виконано! Бонус: +${questReward} см` : '';
+
+      // Нагорода квесту йде через ту саму `delta`, що й performMeasurement
+      // збереже одним викликом - окремий запис у БД тут створив би гонку
+      // (див. коментар у quest.service.ts::registerDuelWin).
       return {
-        delta: amount,
-        message: `⚔️ Зустрів ${opponentLabel}! Ти переміг і забрав ${amount} см собі!`,
+        delta: questReward ? amount + questReward : amount,
+        message: `⚔️ Зустрів ${opponentLabel}! Ти переміг і забрав ${amount} см собі!${questNote}`,
       };
     }
 
-    await UserModel.updateOne({ _id: opponent._id }, { $inc: { value: amount } });
+    await applyOpponentDelta(opponent, amount);
     return {
       delta: -amount,
       message: `⚔️ Зустрів ${opponentLabel}! Ти програв і віддав ${amount} см!`,

@@ -1,15 +1,24 @@
-import { BASE_CONDITION_CODE } from '../config/constants';
+import {
+  BASE_CONDITION_CODE,
+  BASE_EXPERIENCE_PER_MEASUREMENT,
+  EXPERIENCE_PER_STREAK_POINT,
+  STREAK_GRACE_HOURS,
+} from '../config/constants';
 import { ConditionModel } from '../database/models/condition.model';
 import type { UserHydratedDocument } from '../database/models/user.model';
+import type { ThemeConditionOverride } from '../data/roundThemes.data';
 import type { ConditionDto } from '../dto/condition.dto';
+import { envConfig } from '../config/env.config';
 import { mapConditionDocumentToDto } from '../mappers/condition.mapper';
 import { mapUserDocumentToDto } from '../mappers/user.mapper';
 import { genericModifier } from '../modifiers/generic.modifier';
 import { modifierRegistry } from '../modifiers/modifier.registry';
 import type { GrowthModifierContext } from '../modifiers/growthModifier.types';
-import { ensureRoundInitialized, getActiveTheme, getThemeOverrideForCondition } from './gameState.service';
-import type { ThemeConditionOverride } from '../data/roundThemes.data';
+import { getActiveTheme, getThemeOverrideForCondition } from './gameState.service';
+import { getDuelChanceOverrideForUser } from './quest.service';
+import { ensureRoundInitialized } from './roundLifecycle.service';
 import { nowUtc } from '../utils/date.util';
+import { getCurrentRoundNumber } from '../utils/seasonRound.util';
 
 export interface MeasurementOutcome {
   previousValue: number;
@@ -47,6 +56,7 @@ export async function performMeasurement(
 ): Promise<MeasurementOutcome> {
   const gameState = await ensureRoundInitialized();
   const activeTheme = getActiveTheme(gameState);
+  const roundNumber = getCurrentRoundNumber();
 
   const conditionDocs = await ConditionModel.find({
     is_enabled: true,
@@ -64,7 +74,16 @@ export async function performMeasurement(
     const handler = modifierRegistry.get(conditionDoc.code) ?? genericModifier;
 
     const themeOverride = getThemeOverrideForCondition(activeTheme, conditionDoc.code);
-    const conditionDto = applyThemeOverride(mapConditionDocumentToDto(conditionDoc), themeOverride);
+    let conditionDto = applyThemeOverride(mapConditionDocumentToDto(conditionDoc), themeOverride);
+
+    // Персональний квест "виграй N дуелей" (п.5) перебиває навіть тему -
+    // це фіксований особистий шанс, а не множник.
+    if (conditionDoc.code === 'duel') {
+      const personalChance = await getDuelChanceOverrideForUser(user.telegram_id, roundNumber);
+      if (personalChance !== null) {
+        conditionDto = { ...conditionDto, chance: personalChance };
+      }
+    }
 
     const context: GrowthModifierContext = {
       user: userDto,
@@ -108,9 +127,25 @@ export async function performMeasurement(
   const rawNewValue = previousValue + resolved.result.delta;
   const newValue = Math.round(rawNewValue * 100) / 100;
 
+  // Streak/досвід рахуємо ДО того, як перезапишемо last_measurement_at.
+  const previousMeasurementAt = user.last_measurement_at;
+  if (previousMeasurementAt === null) {
+    user.streak_current = 1;
+  } else {
+    const gapHours = nowUtc().diff(previousMeasurementAt, 'hour', true);
+    const onTime = gapHours <= envConfig.measurementCooldownHours + STREAK_GRACE_HOURS;
+    user.streak_current = onTime ? user.streak_current + 1 : 1;
+  }
+  if (user.streak_current > user.streak_best) {
+    user.streak_best = user.streak_current;
+  }
+  const experienceGain = BASE_EXPERIENCE_PER_MEASUREMENT + user.streak_current * EXPERIENCE_PER_STREAK_POINT;
+  user.experience = Math.round((user.experience + experienceGain) * 100) / 100;
+
   user.value = newValue;
   user.season_growth = Math.round((user.season_growth + resolved.result.delta) * 100) / 100;
   user.round_growth = Math.round((user.round_growth + resolved.result.delta) * 100) / 100;
+  user.round_measurement_count += 1;
   if (user.round_best_delta === null || resolved.result.delta > user.round_best_delta) {
     user.round_best_delta = resolved.result.delta;
   }

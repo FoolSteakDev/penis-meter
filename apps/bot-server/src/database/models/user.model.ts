@@ -31,7 +31,14 @@ export interface UserDocument {
   round_growth: number;
   /** Найбільша одинична дельта в межах поточного раунду - для підсумку "найбільший стрибок". */
   round_best_delta: number | null;
+  /** Кількість вимірів у поточному раунді - для квесту "N вимірів за тиждень". */
+  round_measurement_count: number;
   titles: UserTitle[];
+  /** Ранговий досвід - росте від активності (виміри, streak-бонус), не від value. */
+  experience: number;
+  /** Поточна серія "вчасних" вимірів підряд (без передчасних спроб і без запізнень). */
+  streak_current: number;
+  streak_best: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -70,7 +77,11 @@ const userSchema = new Schema<UserDocument>(
     season_growth: { type: Number, required: true, default: 0 },
     round_growth: { type: Number, required: true, default: 0 },
     round_best_delta: { type: Number, default: null },
+    round_measurement_count: { type: Number, required: true, default: 0 },
     titles: { type: [userTitleSchema], default: [] },
+    experience: { type: Number, required: true, default: 0 },
+    streak_current: { type: Number, required: true, default: 0 },
+    streak_best: { type: Number, required: true, default: 0 },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

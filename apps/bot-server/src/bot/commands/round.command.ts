@@ -1,6 +1,8 @@
 import type { Context } from 'telegraf';
 import { SEASON_START_DATE } from '../../config/constants';
-import { ensureRoundInitialized, getActiveTheme } from '../../services/gameState.service';
+import { getActiveTheme } from '../../services/gameState.service';
+import { getActiveDuelQuest } from '../../services/quest.service';
+import { ensureRoundInitialized } from '../../services/roundLifecycle.service';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
 import { getCurrentRoundInfo, getDaysUntil } from '../../utils/seasonRound.util';
 
@@ -39,6 +41,11 @@ export async function handleRoundCommand(ctx: Context): Promise<void> {
 
   if (theme) {
     lines.push(`🎭 Тема тижня: ${theme.name} - ${theme.description}`);
+  }
+
+  const quest = await getActiveDuelQuest(user.telegram_id, info.roundNumber);
+  if (quest) {
+    lines.push(`🎯 Квест: виграй дуелей ${quest.progress}/${quest.target} (шанс дуелі підвищено до 75% цього тижня)`);
   }
 
   await ctx.reply(lines.join('\n'));

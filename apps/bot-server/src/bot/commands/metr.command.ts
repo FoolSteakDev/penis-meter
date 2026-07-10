@@ -19,6 +19,11 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
 
   if (!isCooldownElapsed(user.last_measurement_at)) {
     const remaining = formatRemainingCooldown(user.last_measurement_at);
+    // Передчасна спроба одразу рве streak "вчасних" вимірів (див. п.2 плану).
+    if (user.streak_current !== 0) {
+      user.streak_current = 0;
+      await user.save();
+    }
     await ctx.reply(`⏳ Наступний вимір буде доступний через ${remaining}.`);
     return;
   }

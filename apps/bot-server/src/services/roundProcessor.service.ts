@@ -1,5 +1,6 @@
 import type { Dayjs } from 'dayjs';
 import type { Telegraf } from 'telegraf';
+import { DEFAULT_STARTING_VALUE_CM } from '../config/constants';
 import { SeasonModel, type SeasonChatTop, type SeasonTopEntry } from '../database/models/season.model';
 import { UserModel, type UserHydratedDocument, type UserTitleCode } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
@@ -9,7 +10,9 @@ import {
   getSeasonNumber,
   isLastRoundOfSeason,
 } from '../utils/seasonRound.util';
-import { ensureRoundInitialized, getActiveTheme, getOrCreateGameState } from './gameState.service';
+import { getOrCreateGameState } from './gameState.service';
+import { getAllChatIds, getActiveUsers, initializeRound } from './roundLifecycle.service';
+import { processClimberQuests, processMeasurementCountQuests } from './weeklyGoals.service';
 
 const SEASON_TOP_SIZE = 10;
 
@@ -33,18 +36,27 @@ function titleCodeForRank(rank: number): UserTitleCode | null {
   return null;
 }
 
-async function getActiveUsers(): Promise<UserHydratedDocument[]> {
-  return UserModel.find({ 'chats.0': { $exists: true } });
-}
-
-function getAllChatIds(users: UserHydratedDocument[]): number[] {
-  const chatIds = new Set<number>();
-  for (const user of users) {
-    for (const chatId of user.chats) {
-      chatIds.add(chatId);
-    }
-  }
-  return [...chatIds];
+/**
+ * Одноразове обнулення value/кулдауну на старт першого раунду (див. п.1
+ * плану) - "чистий старт" для змагальної системи сезонів/раундів. Захищене
+ * прапорцем у GameState, тож навіть при повторних викликах спрацює лише
+ * один раз.
+ */
+async function performSeasonStartReset(): Promise<void> {
+  await UserModel.updateMany(
+    {},
+    {
+      $set: {
+        value: DEFAULT_STARTING_VALUE_CM,
+        last_measurement_at: null,
+        season_growth: 0,
+        round_growth: 0,
+        round_best_delta: null,
+        round_measurement_count: 0,
+      },
+    },
+  );
+  console.log('[roundProcessor] one-time season-start reset applied to all users');
 }
 
 async function announceRoundSummary(bot: Telegraf, users: UserHydratedDocument[], endedRoundNumber: number): Promise<void> {
@@ -73,6 +85,33 @@ async function announceRoundSummary(bot: Telegraf, users: UserHydratedDocument[]
     if (lines.length > 1) {
       await sendMessageSafely(bot, chatId, lines.join('\n'));
     }
+  }
+}
+
+async function announceWeeklyQuests(bot: Telegraf, users: UserHydratedDocument[], endedRoundNumber: number): Promise<void> {
+  const measurementAwards = await processMeasurementCountQuests(users);
+  const climberAwards = await processClimberQuests(users, getAllChatIds(users), endedRoundNumber);
+
+  const byChat = new Map<number, string[]>();
+
+  for (const award of measurementAwards) {
+    const user = users.find((u) => u.telegram_id === award.telegramId);
+    if (!user) continue;
+    for (const chatId of user.chats) {
+      const lines = byChat.get(chatId) ?? [];
+      lines.push(`📈 ${award.label}: ${award.threshold}+ вимірів за тиждень → +${award.rewardCm} см!`);
+      byChat.set(chatId, lines);
+    }
+  }
+
+  for (const award of climberAwards) {
+    const lines = byChat.get(award.chatId) ?? [];
+    lines.push(`🚀 ${award.label} увірвався в топ-3 чату цього тижня → +${award.rewardCm} см!`);
+    byChat.set(award.chatId, lines);
+  }
+
+  for (const [chatId, lines] of byChat) {
+    await sendMessageSafely(bot, chatId, `🎯 Квести тижня:\n${lines.join('\n')}`);
   }
 }
 
@@ -147,19 +186,15 @@ async function announceSeasonSummary(bot: Telegraf, users: UserHydratedDocument[
 }
 
 async function resetRoundCounters(): Promise<void> {
-  await UserModel.updateMany({}, { $set: { round_growth: 0, round_best_delta: null } });
-}
-
-async function announceNewTheme(bot: Telegraf, users: UserHydratedDocument[], themeName: string, themeDescription: string): Promise<void> {
-  const text = `🎭 Нова тема тижня: ${themeName}\n${themeDescription}`;
-  for (const chatId of getAllChatIds(users)) {
-    await sendMessageSafely(bot, chatId, text);
-  }
+  await UserModel.updateMany(
+    {},
+    { $set: { round_growth: 0, round_best_delta: null, round_measurement_count: 0 } },
+  );
 }
 
 /**
- * Викликається крон-джобою (див. index.ts). Ідемпотентно: якщо нічого не
- * змінилось із минулого виклику - просто нічого не робить.
+ * Викликається крон-джобою (див. bot/scheduler.ts). Ідемпотентно: якщо
+ * нічого не змінилось із минулого виклику - просто нічого не робить.
  */
 export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc()): Promise<void> {
   const currentRoundNumber = getCurrentRoundNumber(at);
@@ -169,11 +204,24 @@ export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc(
 
   const gameState = await getOrCreateGameState();
 
+  if (!gameState.season_start_reset_done) {
+    await performSeasonStartReset();
+    gameState.season_start_reset_done = true;
+    await gameState.save();
+  }
+
+  // Раунд 1 ще жодного разу не ініціалізований (тема/знімок/квести) - і
+  // жодного "кінця раунду" для нього самого немає, тому ініціалізуємо
+  // окремо перед основним циклом.
+  await initializeRound(1, gameState, bot);
+
   while (gameState.last_processed_round_number < currentRoundNumber - 1) {
     const endedRoundNumber = gameState.last_processed_round_number + 1;
+    const newRoundNumber = endedRoundNumber + 1;
     const users = await getActiveUsers();
 
     await announceRoundSummary(bot, users, endedRoundNumber);
+    await announceWeeklyQuests(bot, users, endedRoundNumber);
 
     if (isLastRoundOfSeason(endedRoundNumber)) {
       await announceSeasonSummary(bot, users, getSeasonNumber(endedRoundNumber));
@@ -183,15 +231,7 @@ export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc(
 
     gameState.last_processed_round_number = endedRoundNumber;
     await gameState.save();
-  }
 
-  const previousThemeRound = gameState.current_theme_round_number;
-  const refreshedState = await ensureRoundInitialized(at);
-  if (refreshedState.current_theme_round_number !== previousThemeRound) {
-    const theme = getActiveTheme(refreshedState);
-    if (theme) {
-      const users = await getActiveUsers();
-      await announceNewTheme(bot, users, theme.name, theme.description);
-    }
+    await initializeRound(newRoundNumber, gameState, bot);
   }
 }
