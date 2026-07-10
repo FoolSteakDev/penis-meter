@@ -1,5 +1,6 @@
 import { createApp } from './app';
 import { createBot } from './bot/bot';
+import { startRoundScheduler } from './bot/scheduler';
 import { envConfig } from './config/env.config';
 import { connectMongo } from './database/mongo.connection';
 
@@ -27,6 +28,8 @@ async function main(): Promise<void> {
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+  startRoundScheduler(bot);
 }
 
 main().catch((error) => {

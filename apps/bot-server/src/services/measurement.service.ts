@@ -1,11 +1,14 @@
 import { BASE_CONDITION_CODE } from '../config/constants';
 import { ConditionModel } from '../database/models/condition.model';
 import type { UserHydratedDocument } from '../database/models/user.model';
+import type { ConditionDto } from '../dto/condition.dto';
 import { mapConditionDocumentToDto } from '../mappers/condition.mapper';
 import { mapUserDocumentToDto } from '../mappers/user.mapper';
 import { genericModifier } from '../modifiers/generic.modifier';
 import { modifierRegistry } from '../modifiers/modifier.registry';
 import type { GrowthModifierContext } from '../modifiers/growthModifier.types';
+import { ensureRoundInitialized, getActiveTheme, getThemeOverrideForCondition } from './gameState.service';
+import type { ThemeConditionOverride } from '../data/roundThemes.data';
 import { nowUtc } from '../utils/date.util';
 
 export interface MeasurementOutcome {
@@ -25,10 +28,26 @@ function shuffle<T>(items: T[]): T[] {
   return result;
 }
 
+/** Дельта/шанс з активної теми раунду (див. п.3 ТЗ "Тематичні раунди"), якщо є. */
+function applyThemeOverride(condition: ConditionDto, override: ThemeConditionOverride | null): ConditionDto {
+  if (!override) {
+    return condition;
+  }
+  return {
+    ...condition,
+    chance: condition.chance * (override.chanceMultiplier ?? 1),
+    minDelta: override.minDeltaOverride ?? condition.minDelta,
+    maxDelta: override.maxDeltaOverride ?? condition.maxDelta,
+  };
+}
+
 export async function performMeasurement(
   user: UserHydratedDocument,
   chatId: number,
 ): Promise<MeasurementOutcome> {
+  const gameState = await ensureRoundInitialized();
+  const activeTheme = getActiveTheme(gameState);
+
   const conditionDocs = await ConditionModel.find({
     is_enabled: true,
     code: { $ne: BASE_CONDITION_CODE },
@@ -44,10 +63,13 @@ export async function performMeasurement(
     // обробляються generic-фолбеком - простий рандом у [min, max].
     const handler = modifierRegistry.get(conditionDoc.code) ?? genericModifier;
 
+    const themeOverride = getThemeOverrideForCondition(activeTheme, conditionDoc.code);
+    const conditionDto = applyThemeOverride(mapConditionDocumentToDto(conditionDoc), themeOverride);
+
     const context: GrowthModifierContext = {
       user: userDto,
       chatId,
-      condition: mapConditionDocumentToDto(conditionDoc),
+      condition: conditionDto,
     };
 
     const eligible = await handler.isEligible(context);
@@ -55,7 +77,7 @@ export async function performMeasurement(
       continue;
     }
 
-    if (Math.random() < conditionDoc.chance) {
+    if (Math.random() < conditionDto.chance) {
       const result = await handler.apply(context);
       resolved = { condition: conditionDoc, result };
       break;
@@ -71,10 +93,12 @@ export async function performMeasurement(
     if (!handler) {
       throw new Error('Base modifier handler is not registered');
     }
+    const themeOverride = getThemeOverrideForCondition(activeTheme, BASE_CONDITION_CODE);
+    const conditionDto = applyThemeOverride(mapConditionDocumentToDto(baseCondition), themeOverride);
     const context: GrowthModifierContext = {
       user: userDto,
       chatId,
-      condition: mapConditionDocumentToDto(baseCondition),
+      condition: conditionDto,
     };
     const result = await handler.apply(context);
     resolved = { condition: baseCondition, result };
@@ -85,6 +109,11 @@ export async function performMeasurement(
   const newValue = Math.round(rawNewValue * 100) / 100;
 
   user.value = newValue;
+  user.season_growth = Math.round((user.season_growth + resolved.result.delta) * 100) / 100;
+  user.round_growth = Math.round((user.round_growth + resolved.result.delta) * 100) / 100;
+  if (user.round_best_delta === null || resolved.result.delta > user.round_best_delta) {
+    user.round_best_delta = resolved.result.delta;
+  }
   user.last_measurement_at = nowUtc().toDate();
   if (!user.chats.includes(chatId)) {
     user.chats.push(chatId);

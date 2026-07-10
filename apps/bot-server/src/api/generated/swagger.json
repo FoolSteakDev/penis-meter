@@ -29,6 +29,59 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"UserTitleCodeDto": {
+				"type": "string",
+				"enum": [
+					"champion",
+					"silver",
+					"bronze",
+					"top10"
+				]
+			},
+			"UserTitleScopeDto": {
+				"type": "string",
+				"enum": [
+					"global",
+					"chat"
+				]
+			},
+			"UserTitleDto": {
+				"properties": {
+					"seasonNumber": {
+						"type": "number",
+						"format": "double"
+					},
+					"rank": {
+						"type": "number",
+						"format": "double"
+					},
+					"titleCode": {
+						"$ref": "#/components/schemas/UserTitleCodeDto"
+					},
+					"scope": {
+						"$ref": "#/components/schemas/UserTitleScopeDto"
+					},
+					"chatId": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"awardedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"seasonNumber",
+					"rank",
+					"titleCode",
+					"scope",
+					"chatId",
+					"awardedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"UserDto": {
 				"properties": {
 					"id": {
@@ -64,6 +117,20 @@
 					"work": {
 						"$ref": "#/components/schemas/UserWorkDto"
 					},
+					"seasonGrowth": {
+						"type": "number",
+						"format": "double"
+					},
+					"roundGrowth": {
+						"type": "number",
+						"format": "double"
+					},
+					"titles": {
+						"items": {
+							"$ref": "#/components/schemas/UserTitleDto"
+						},
+						"type": "array"
+					},
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
@@ -82,6 +149,9 @@
 					"lastMeasurementAt",
 					"chats",
 					"work",
+					"seasonGrowth",
+					"roundGrowth",
+					"titles",
 					"createdAt",
 					"updatedAt"
 				],

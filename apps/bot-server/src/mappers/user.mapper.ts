@@ -14,6 +14,16 @@ export function mapUserDocumentToDto(doc: UserHydratedDocument | UserDocument): 
       schedule: doc.work?.schedule ?? [5, 2],
       lastWeekend: doc.work?.last_weekend ?? null,
     },
+    seasonGrowth: doc.season_growth ?? 0,
+    roundGrowth: doc.round_growth ?? 0,
+    titles: (doc.titles ?? []).map((title) => ({
+      seasonNumber: title.season_number,
+      rank: title.rank,
+      titleCode: title.title_code,
+      scope: title.scope,
+      chatId: title.chat_id,
+      awardedAt: title.awarded_at,
+    })),
     createdAt: doc.created_at,
     updatedAt: doc.updated_at,
   };

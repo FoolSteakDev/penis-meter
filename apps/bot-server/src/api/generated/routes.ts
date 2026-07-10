@@ -23,6 +23,29 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserTitleCodeDto": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["champion"]},{"dataType":"enum","enums":["silver"]},{"dataType":"enum","enums":["bronze"]},{"dataType":"enum","enums":["top10"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserTitleScopeDto": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["global"]},{"dataType":"enum","enums":["chat"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserTitleDto": {
+        "dataType": "refObject",
+        "properties": {
+            "seasonNumber": {"dataType":"double","required":true},
+            "rank": {"dataType":"double","required":true},
+            "titleCode": {"ref":"UserTitleCodeDto","required":true},
+            "scope": {"ref":"UserTitleScopeDto","required":true},
+            "chatId": {"dataType":"union","subSchemas":[{"dataType":"double"},{"dataType":"enum","enums":[null]}],"required":true},
+            "awardedAt": {"dataType":"datetime","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UserDto": {
         "dataType": "refObject",
         "properties": {
@@ -34,6 +57,9 @@ const models: TsoaRoute.Models = {
             "lastMeasurementAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
             "chats": {"dataType":"array","array":{"dataType":"double"},"required":true},
             "work": {"ref":"UserWorkDto","required":true},
+            "seasonGrowth": {"dataType":"double","required":true},
+            "roundGrowth": {"dataType":"double","required":true},
+            "titles": {"dataType":"array","array":{"dataType":"refObject","ref":"UserTitleDto"},"required":true},
             "createdAt": {"dataType":"datetime","required":true},
             "updatedAt": {"dataType":"datetime","required":true},
         },

@@ -45,3 +45,17 @@ export async function getGlobalRating(): Promise<UserDto[]> {
   const users = await UserModel.find().sort({ value: -1 }).limit(RATING_LIMIT);
   return users.map(mapUserDocumentToDto);
 }
+
+/** Місце користувача за season_growth/round_growth - глобально або в межах чату. */
+export async function getGrowthRank(
+  field: 'season_growth' | 'round_growth',
+  value: number,
+  chatId?: number,
+): Promise<number> {
+  const filter: Record<string, unknown> = { [field]: { $gt: value } };
+  if (chatId !== undefined) {
+    filter.chats = chatId;
+  }
+  const higherCount = await UserModel.countDocuments(filter);
+  return higherCount + 1;
+}
