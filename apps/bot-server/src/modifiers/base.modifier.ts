@@ -1,9 +1,6 @@
 import { BASE_CONDITION_CODE } from '../config/constants';
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 export class BaseModifier implements GrowthModifierHandler {
   code = BASE_CONDITION_CODE;
@@ -13,8 +10,7 @@ export class BaseModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { minDelta, maxDelta } = context.condition;
-    const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+    const delta = rollBaseDelta(context.condition);
     return {
       delta,
       message: '',

@@ -1,11 +1,8 @@
 import { getBtcHourlyChange, type BtcPriceChange } from '../services/crypto.service';
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
 
 const SIGNIFICANT_CHANGE_PERCENT = 0.5;
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 function adjustDeltaForCrypto(baseDelta: number, changePercent: number, minDelta: number, maxDelta: number): number {
   const magnitude = Math.min(Math.abs(changePercent) / 3, 1);
@@ -46,7 +43,7 @@ export class CryptoModifier implements GrowthModifierHandler {
 
     try {
       const priceChange = await getBtcHourlyChange();
-      const baseDelta = randomInRange(minDelta, maxDelta);
+      const baseDelta = rollBaseDelta(context.condition);
       const delta = adjustDeltaForCrypto(baseDelta, priceChange.changePercent, minDelta, maxDelta);
       return {
         delta,
@@ -54,7 +51,7 @@ export class CryptoModifier implements GrowthModifierHandler {
       };
     } catch (error) {
       console.error('[crypto.modifier] failed to fetch BTC price', error);
-      const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+      const delta = rollBaseDelta(context.condition);
       return {
         delta,
         message: 'Крипторинок сьогодні непередбачуваний.',

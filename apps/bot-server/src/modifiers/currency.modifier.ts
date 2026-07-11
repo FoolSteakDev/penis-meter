@@ -1,11 +1,8 @@
 import { getUsdRateChange, type UsdRateChange } from '../services/currency.service';
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
 
 const SIGNIFICANT_CHANGE_PERCENT = 0.1;
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 function adjustDeltaForCurrency(baseDelta: number, changePercent: number, minDelta: number, maxDelta: number): number {
   const magnitude = Math.min(Math.abs(changePercent) / 2, 1);
@@ -49,7 +46,7 @@ export class CurrencyModifier implements GrowthModifierHandler {
 
     try {
       const rateChange = await getUsdRateChange();
-      const baseDelta = randomInRange(minDelta, maxDelta);
+      const baseDelta = rollBaseDelta(context.condition);
       const delta = adjustDeltaForCurrency(baseDelta, rateChange.changePercent, minDelta, maxDelta);
       return {
         delta,
@@ -57,7 +54,7 @@ export class CurrencyModifier implements GrowthModifierHandler {
       };
     } catch (error) {
       console.error('[currency.modifier] failed to fetch USD/UAH rate', error);
-      const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+      const delta = rollBaseDelta(context.condition);
       return {
         delta,
         message: 'Курс валют сьогодні вирішив втрутитись у результат.',

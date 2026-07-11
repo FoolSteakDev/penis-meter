@@ -1,4 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
+import { toKyivDateInputValue } from '../utils/kyivTime';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -10,16 +11,12 @@ interface EditableDateFieldProps {
 
 const SAVED_FLASH_MS = 1200;
 
-function toDateInputValue(value: string | null): string {
-  return value ? value.slice(0, 10) : '';
-}
-
 export function EditableDateField({ value, onSave, disabled }: EditableDateFieldProps) {
-  const [text, setText] = useState(toDateInputValue(value));
+  const [text, setText] = useState(toKyivDateInputValue(value));
   const [status, setStatus] = useState<SaveStatus>('idle');
 
   useEffect(() => {
-    setText(toDateInputValue(value));
+    setText(toKyivDateInputValue(value));
   }, [value]);
 
   async function handleChange(e: ChangeEvent<HTMLInputElement>) {

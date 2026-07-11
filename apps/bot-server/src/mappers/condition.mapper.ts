@@ -13,6 +13,8 @@ export function mapConditionDocumentToDto(
     chance: doc.chance,
     minDelta: doc.min_delta,
     maxDelta: doc.max_delta,
+    deltaMode: doc.delta_mode,
+    fixedValues: doc.fixed_values,
     config: doc.config,
     isProtected: doc.is_protected,
     createdAt: doc.created_at,

@@ -1,8 +1,5 @@
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 /**
  * Фолбек для умов без власного handler'а (кастомні умови типу "джекпот",
@@ -18,11 +15,10 @@ export class GenericModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { minDelta, maxDelta, description } = context.condition;
-    const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+    const delta = rollBaseDelta(context.condition);
     return {
       delta,
-      message: description?.trim() || '🎉 Спрацювала особлива умова!',
+      message: context.condition.description?.trim() || '🎉 Спрацювала особлива умова!',
     };
   }
 }

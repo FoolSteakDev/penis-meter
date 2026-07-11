@@ -1,9 +1,6 @@
 import { getTodayHistoricalEvent } from '../services/historicalDay.service';
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 export class HistoricalDayModifier implements GrowthModifierHandler {
   code = 'historical_day';
@@ -13,11 +10,10 @@ export class HistoricalDayModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { minDelta, maxDelta } = context.condition;
     const historicalEvent = getTodayHistoricalEvent();
 
     // isEligible вже гарантує наявність події на сьогодні, але про всяк випадок
-    const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+    const delta = rollBaseDelta(context.condition);
 
     if (!historicalEvent) {
       return { delta, message: '' };

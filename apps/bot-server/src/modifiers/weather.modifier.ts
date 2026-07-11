@@ -1,4 +1,5 @@
 import { fetchCityWeather, pickRandomCity, type CityWeather, type WeatherCategory } from '../services/weather.service';
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
 
 const CATEGORY_LABELS: Record<WeatherCategory, string> = {
@@ -68,7 +69,7 @@ export class WeatherModifier implements GrowthModifierHandler {
 
     try {
       const weather = await fetchCityWeather(city);
-      const baseDelta = randomInRange(minDelta, maxDelta);
+      const baseDelta = rollBaseDelta(context.condition);
       const delta = adjustDeltaForWeather(baseDelta, weather, minDelta, maxDelta);
       return {
         delta,
@@ -76,7 +77,7 @@ export class WeatherModifier implements GrowthModifierHandler {
       };
     } catch (error) {
       console.error('[weather.modifier] failed to fetch weather', error);
-      const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+      const delta = rollBaseDelta(context.condition);
       return {
         delta,
         message: 'Погода десь у світі вплинула на результат.',

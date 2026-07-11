@@ -35,6 +35,8 @@ export interface UsersListResponse {
   limit: number;
 }
 
+export type DeltaMode = 'range' | 'fixed_list';
+
 export interface ConditionDto {
   id: string;
   code: string;
@@ -44,6 +46,8 @@ export interface ConditionDto {
   chance: number;
   minDelta: number;
   maxDelta: number;
+  deltaMode: DeltaMode;
+  fixedValues: number[];
   config: Record<string, unknown>;
   isProtected: boolean;
   createdAt: string;
@@ -56,8 +60,10 @@ export interface CreateConditionRequest {
   description?: string | null;
   isEnabled?: boolean;
   chance: number;
-  minDelta: number;
-  maxDelta: number;
+  deltaMode?: DeltaMode;
+  minDelta?: number;
+  maxDelta?: number;
+  fixedValues?: number[];
   config?: Record<string, unknown>;
 }
 
@@ -66,8 +72,10 @@ export interface UpdateConditionRequest {
   description?: string | null;
   isEnabled?: boolean;
   chance?: number;
+  deltaMode?: DeltaMode;
   minDelta?: number;
   maxDelta?: number;
+  fixedValues?: number[];
   config?: Record<string, unknown>;
 }
 

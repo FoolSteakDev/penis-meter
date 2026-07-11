@@ -1,3 +1,5 @@
+import type { DeltaMode } from '../database/models/condition.model';
+
 export interface ConditionDto {
   id: string;
   code: string;
@@ -7,6 +9,8 @@ export interface ConditionDto {
   chance: number;
   minDelta: number;
   maxDelta: number;
+  deltaMode: DeltaMode;
+  fixedValues: number[];
   config: Record<string, unknown>;
   isProtected: boolean;
   createdAt: Date;

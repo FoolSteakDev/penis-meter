@@ -1,11 +1,8 @@
 import { getMessageCountLastHour } from '../services/chatActivity.service';
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
 
 const DEFAULT_MESSAGE_THRESHOLD = 20;
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 export class ChatActivityModifier implements GrowthModifierHandler {
   code = 'chat_activity';
@@ -16,8 +13,7 @@ export class ChatActivityModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { minDelta, maxDelta } = context.condition;
-    const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+    const delta = rollBaseDelta(context.condition);
     const count = getMessageCountLastHour(context.chatId);
 
     return {

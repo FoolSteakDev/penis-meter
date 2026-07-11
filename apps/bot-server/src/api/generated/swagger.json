@@ -224,6 +224,13 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"DeltaMode": {
+				"type": "string",
+				"enum": [
+					"range",
+					"fixed_list"
+				]
+			},
 			"Record_string.unknown_": {
 				"properties": {},
 				"additionalProperties": {},
@@ -260,6 +267,16 @@
 						"type": "number",
 						"format": "double"
 					},
+					"deltaMode": {
+						"$ref": "#/components/schemas/DeltaMode"
+					},
+					"fixedValues": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
+					},
 					"config": {
 						"$ref": "#/components/schemas/Record_string.unknown_"
 					},
@@ -284,6 +301,8 @@
 					"chance",
 					"minDelta",
 					"maxDelta",
+					"deltaMode",
+					"fixedValues",
 					"config",
 					"isProtected",
 					"createdAt",
@@ -311,6 +330,9 @@
 						"type": "number",
 						"format": "double"
 					},
+					"deltaMode": {
+						"$ref": "#/components/schemas/DeltaMode"
+					},
 					"minDelta": {
 						"type": "number",
 						"format": "double"
@@ -319,6 +341,13 @@
 						"type": "number",
 						"format": "double"
 					},
+					"fixedValues": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
+					},
 					"config": {
 						"$ref": "#/components/schemas/Record_string.unknown_"
 					}
@@ -326,9 +355,7 @@
 				"required": [
 					"code",
 					"name",
-					"chance",
-					"minDelta",
-					"maxDelta"
+					"chance"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -349,6 +376,9 @@
 						"type": "number",
 						"format": "double"
 					},
+					"deltaMode": {
+						"$ref": "#/components/schemas/DeltaMode"
+					},
 					"minDelta": {
 						"type": "number",
 						"format": "double"
@@ -356,6 +386,13 @@
 					"maxDelta": {
 						"type": "number",
 						"format": "double"
+					},
+					"fixedValues": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
 					},
 					"config": {
 						"$ref": "#/components/schemas/Record_string.unknown_"

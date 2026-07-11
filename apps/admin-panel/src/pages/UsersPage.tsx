@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, type UserDto } from '../api/client';
 import { EditableDateField } from '../components/EditableDateField';
 import { EditableNumberField } from '../components/EditableNumberField';
+import { formatKyivDateTime } from '../utils/kyivTime';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserDto[]>([]);
@@ -57,7 +58,6 @@ export default function UsersPage() {
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="bg-navy text-cream">
-            <th className="px-4 py-3 font-semibold">Telegram ID</th>
             <th className="px-4 py-3 font-semibold">Користувач</th>
             <th className="px-4 py-3 font-semibold">Значення (см)</th>
             <th className="px-4 py-3 font-semibold">Графік (роб./вих.)</th>
@@ -69,7 +69,6 @@ export default function UsersPage() {
         <tbody className="divide-y divide-navy/10">
           {users.map((user) => (
             <tr key={user.id} className="transition-colors hover:bg-cream/60">
-              <td className="px-4 py-2 text-navy/70">{user.telegramId}</td>
               <td className="px-4 py-2 font-medium text-navy">
                 {user.username ? `@${user.username}` : user.firstName}
               </td>
@@ -101,15 +100,13 @@ export default function UsersPage() {
                   onSave={(lastWeekend) => handleSaveLastWeekend(user, lastWeekend)}
                 />
               </td>
-              <td className="px-4 py-2 text-navy/70">
-                {user.lastMeasurementAt ? new Date(user.lastMeasurementAt).toLocaleString() : '—'}
-              </td>
+              <td className="px-4 py-2 text-navy/70">{formatKyivDateTime(user.lastMeasurementAt)}</td>
               <td className="px-4 py-2 text-navy/70">{user.chats.length}</td>
             </tr>
           ))}
           {users.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-6 text-center text-navy/40">
+              <td colSpan={6} className="px-4 py-6 text-center text-navy/40">
                 Ще немає користувачів
               </td>
             </tr>

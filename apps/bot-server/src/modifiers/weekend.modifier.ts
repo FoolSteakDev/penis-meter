@@ -1,9 +1,6 @@
+import { rollBaseDelta } from '../utils/deltaRoll.util';
 import { isRestDayForUser } from '../utils/workSchedule.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
-
-function randomInRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
 
 export class WeekendModifier implements GrowthModifierHandler {
   code = 'weekend';
@@ -13,8 +10,7 @@ export class WeekendModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { minDelta, maxDelta } = context.condition;
-    const delta = Math.round(randomInRange(minDelta, maxDelta) * 100) / 100;
+    const delta = rollBaseDelta(context.condition);
     return {
       delta,
       message: 'Вихідний день - природа сприяє росту! 🎉',
