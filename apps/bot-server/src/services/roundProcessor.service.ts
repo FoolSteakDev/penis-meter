@@ -212,8 +212,13 @@ export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc(
 
   // Раунд 1 ще жодного разу не ініціалізований (тема/знімок/квести) - і
   // жодного "кінця раунду" для нього самого немає, тому ініціалізуємо
-  // окремо перед основним циклом.
-  await initializeRound(1, gameState, bot);
+  // окремо перед основним циклом. Лише поки раунд 1 ще триває (last_processed
+  // === 0) - інакше цей виклик на кожному кроні відкочував current_theme_*
+  // назад на раунд 1, спричиняючи повторні "Нова тема тижня" й неправильну
+  // тему в /round.
+  if (gameState.last_processed_round_number === 0) {
+    await initializeRound(1, gameState, bot);
+  }
 
   while (gameState.last_processed_round_number < currentRoundNumber - 1) {
     const endedRoundNumber = gameState.last_processed_round_number + 1;
