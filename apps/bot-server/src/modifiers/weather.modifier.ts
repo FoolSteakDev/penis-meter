@@ -20,8 +20,8 @@ function randomInRange(min: number, max: number): number {
 function adjustDeltaForWeather(baseDelta: number, weather: CityWeather, minDelta: number, maxDelta: number): number {
   let delta = baseDelta;
 
-  if (weather.temperatureC > HOT_THRESHOLD_C && delta > 0) {
-    delta *= 1.3;
+  if (weather.temperatureC > HOT_THRESHOLD_C) {
+    delta = delta > 0 ? delta * 1.3 : delta * 0.5;
   } else if (weather.temperatureC < COLD_THRESHOLD_C) {
     delta = delta < 0 ? delta * 1.3 : delta * 0.5;
   }
@@ -33,6 +33,8 @@ function adjustDeltaForWeather(baseDelta: number, weather: CityWeather, minDelta
   } else if (weather.category === 'clear') {
     delta += randomInRange(0, Math.abs(maxDelta) * 0.15);
   }
+
+  delta = Math.min(maxDelta, Math.max(minDelta, delta));
 
   return Math.round(delta * 100) / 100;
 }

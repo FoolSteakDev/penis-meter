@@ -14,6 +14,8 @@ function adjustDeltaForCrypto(baseDelta: number, changePercent: number, minDelta
     delta -= Math.abs(minDelta) * magnitude;
   }
 
+  delta = Math.min(maxDelta, Math.max(minDelta, delta));
+
   return Math.round(delta * 100) / 100;
 }
 

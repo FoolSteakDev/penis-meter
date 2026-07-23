@@ -28,6 +28,8 @@ function adjustDeltaForCurrency(
     delta += Math.abs(maxDelta) * magnitude;
   }
 
+  delta = Math.min(maxDelta, Math.max(minDelta, delta));
+
   return Math.round(delta * 100) / 100;
 }
 
