@@ -27,4 +27,6 @@ export const envConfig = {
   measurementCooldownHours: Number(
     process.env.MEASUREMENT_COOLDOWN_HOURS ?? DEFAULT_MEASUREMENT_COOLDOWN_HOURS,
   ),
+  /** URL адмінки для кнопки /admin (Telegram Web App вимагає https). */
+  adminPanelUrl: process.env.ADMIN_PANEL_URL ?? 'https://penis-meter-admin.onrender.com',
 };

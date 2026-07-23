@@ -1,6 +1,7 @@
 import { Telegraf } from 'telegraf';
 import { envConfig } from '../config/env.config';
 import { recordChatMessage } from '../services/chat-activity.service';
+import { handleAdminCommand } from './commands/admin.command';
 import { handleDuelHistoryCommand, handleDuelHistoryMeAction } from './commands/duel-history.command';
 import {
   handleDuelAcceptAction,
@@ -26,6 +27,7 @@ const BOT_COMMANDS = [
   { command: 'season_history', description: 'Чемпіони минулих сезонів' },
   { command: 'duel', description: 'Викликати когось у чаті на дуель' },
   { command: 'duel_history', description: 'Історія дуелей цього чату' },
+  { command: 'admin', description: 'Відкрити адмін-панель' },
 ];
 
 export function createBot(): Telegraf {
@@ -47,6 +49,7 @@ export function createBot(): Telegraf {
   bot.command('season_history', handleSeasonHistoryCommand);
   bot.command('duel', handleDuelCommand);
   bot.command('duel_history', handleDuelHistoryCommand);
+  bot.command('admin', handleAdminCommand);
 
   bot.action(/^duel:invite:\d+:\d+$/, handleDuelInviteAction);
   bot.action(/^duel:accept:[a-f0-9]{24}$/, handleDuelAcceptAction);
