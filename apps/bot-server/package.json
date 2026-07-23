@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsoa spec-and-routes && tsx watch src/index.ts",
-    "dev:apionly": "tsoa spec-and-routes && tsx watch src/devApiOnly.ts",
+    "dev:apionly": "tsoa spec-and-routes && tsx watch src/dev-api-only.ts",
     "build": "tsoa spec-and-routes && tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "seed": "tsx src/database/seed.ts",

@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import ConditionsPage from './pages/conditions-page';
-import RoundsPage from './pages/rounds-page';
 import SettingsPage from './pages/settings-page';
 import UsersPage from './pages/users-page';
 
-type Tab = 'users' | 'conditions' | 'rounds' | 'settings';
+type Tab = 'users' | 'conditions' | 'settings';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Користувачі' },
   { id: 'conditions', label: 'Умови росту' },
-  { id: 'rounds', label: 'Раунди' },
   { id: 'settings', label: 'Налаштування' },
 ];
 
@@ -42,7 +40,6 @@ export default function App() {
 
         {tab === 'users' && <UsersPage />}
         {tab === 'conditions' && <ConditionsPage />}
-        {tab === 'rounds' && <RoundsPage />}
         {tab === 'settings' && <SettingsPage />}
       </main>
     </div>

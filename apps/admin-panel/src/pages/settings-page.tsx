@@ -2,8 +2,45 @@ import { useEffect, useState } from "react";
 import { api, type DuelSettingsDto } from "../api/client";
 import { EditableNumberField } from "../components/editable-number-field";
 import { ToggleSwitch } from "../components/toggle-switch";
+import RoundsPage from "./rounds-page";
+
+type SettingsTab = "duels" | "rounds";
+
+const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
+  { id: "duels", label: "⚔️ Дуелі" },
+  { id: "rounds", label: "📅 Раунди" },
+];
 
 export default function SettingsPage() {
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("duels");
+
+  return (
+    <div className="flex flex-col gap-6 md:flex-row md:items-start">
+      <nav className="flex gap-2 overflow-x-auto md:w-44 md:flex-shrink-0 md:flex-col md:gap-1.5">
+        {SETTINGS_TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSettingsTab(t.id)}
+            className={`whitespace-nowrap rounded-md px-4 py-2 text-left text-sm font-semibold transition-colors ${
+              settingsTab === t.id
+                ? "bg-gold text-navy-dark shadow-sm"
+                : "bg-white text-navy/60 hover:bg-cream-dark"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="min-w-0 flex-1">
+        {settingsTab === "duels" && <DuelSettingsPanel />}
+        {settingsTab === "rounds" && <RoundsPage />}
+      </div>
+    </div>
+  );
+}
+
+function DuelSettingsPanel() {
   const [duelSettings, setDuelSettings] = useState<DuelSettingsDto | null>(
     null,
   );
