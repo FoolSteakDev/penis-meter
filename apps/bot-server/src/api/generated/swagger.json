@@ -224,6 +224,119 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"RoundThemeSource": {
+				"type": "string",
+				"enum": [
+					"admin",
+					"random_fallback",
+					"legacy"
+				]
+			},
+			"RoundDto": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"roundNumber": {
+						"type": "number",
+						"format": "double"
+					},
+					"seasonNumber": {
+						"type": "number",
+						"format": "double"
+					},
+					"roundInSeason": {
+						"type": "number",
+						"format": "double"
+					},
+					"startsAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"endsAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"themeName": {
+						"type": "string",
+						"nullable": true
+					},
+					"themeDescription": {
+						"type": "string",
+						"nullable": true
+					},
+					"conditionCode": {
+						"type": "string",
+						"nullable": true
+					},
+					"conditionChance": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"themeSource": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/RoundThemeSource"
+							}
+						],
+						"nullable": true
+					},
+					"isEditable": {
+						"type": "boolean",
+						"description": "round_number ще не почався - можна редагувати тему."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"roundNumber",
+					"seasonNumber",
+					"roundInSeason",
+					"startsAt",
+					"endsAt",
+					"themeName",
+					"themeDescription",
+					"conditionCode",
+					"conditionChance",
+					"themeSource",
+					"isEditable",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateRoundRequest": {
+				"properties": {
+					"themeName": {
+						"type": "string",
+						"nullable": true
+					},
+					"themeDescription": {
+						"type": "string",
+						"nullable": true
+					},
+					"conditionCode": {
+						"type": "string",
+						"nullable": true
+					},
+					"conditionChance": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
 			"DuelQuestTargetDto": {
 				"properties": {
 					"target": {
@@ -585,6 +698,95 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/UpdateUserRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/rounds": {
+			"get": {
+				"operationId": "ListRounds",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/RoundDto"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Rounds"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/rounds/next": {
+			"post": {
+				"operationId": "CreateNextRound",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RoundDto"
+								}
+							}
+						}
+					}
+				},
+				"description": "Додає наступний ще не створений раунд з порожньою темою й обчисленими датами.",
+				"tags": [
+					"Rounds"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/rounds/{id}": {
+			"patch": {
+				"operationId": "UpdateRound",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RoundDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Rounds"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateRoundRequest"
 							}
 						}
 					}

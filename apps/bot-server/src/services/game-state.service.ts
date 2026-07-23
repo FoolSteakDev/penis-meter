@@ -9,7 +9,33 @@ export async function getOrCreateGameState(): Promise<GameStateHydratedDocument>
   return GameStateModel.create({});
 }
 
-export function getActiveTheme(state: { current_theme_code: string | null }): RoundTheme | null {
+export interface ActiveThemeState {
+  current_theme_code: string | null;
+  current_theme_name: string | null;
+  current_theme_description: string | null;
+  current_theme_condition_code: string | null;
+  current_theme_condition_chance: number | null;
+}
+
+/**
+ * Резолвить активну тему раунду з кешу на GameState - адмін-керовану
+ * (round.model.ts, кешовану через current_theme_condition_code) якщо є,
+ * інакше легасі-тему з пулу ROUND_THEMES за current_theme_code.
+ */
+export function getActiveTheme(state: ActiveThemeState): RoundTheme | null {
+  if (state.current_theme_condition_code) {
+    return {
+      code: 'admin',
+      name: state.current_theme_name ?? '',
+      description: state.current_theme_description ?? '',
+      overrides: [
+        {
+          conditionCode: state.current_theme_condition_code,
+          chanceOverride: state.current_theme_condition_chance ?? undefined,
+        },
+      ],
+    };
+  }
   if (!state.current_theme_code) {
     return null;
   }

@@ -101,6 +101,32 @@ export interface UpdateDuelSettingsRequest {
   questTargets?: DuelQuestTargetDto[];
 }
 
+export type RoundThemeSource = 'admin' | 'random_fallback' | 'legacy';
+
+export interface RoundDto {
+  id: string;
+  roundNumber: number;
+  seasonNumber: number;
+  roundInSeason: number;
+  startsAt: string;
+  endsAt: string;
+  themeName: string | null;
+  themeDescription: string | null;
+  conditionCode: string | null;
+  conditionChance: number | null;
+  themeSource: RoundThemeSource | null;
+  isEditable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateRoundRequest {
+  themeName?: string | null;
+  themeDescription?: string | null;
+  conditionCode?: string | null;
+  conditionChance?: number | null;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -142,4 +168,11 @@ export const api = {
 
   updateDuelSettings: (body: UpdateDuelSettingsRequest) =>
     request<DuelSettingsDto>('/duel-settings', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  listRounds: () => request<RoundDto[]>('/rounds'),
+
+  createNextRound: () => request<RoundDto>('/rounds/next', { method: 'POST' }),
+
+  updateRound: (id: string, body: UpdateRoundRequest) =>
+    request<RoundDto>(`/rounds/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 };

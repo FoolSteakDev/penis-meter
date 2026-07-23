@@ -1,6 +1,8 @@
 export interface ThemeConditionOverride {
   conditionCode: string;
   chanceMultiplier?: number;
+  /** Абсолютний шанс замість множника - так адмін-керовані теми (round.model.ts) задають просту тему без мультиплікаторів. Має пріоритет над chanceMultiplier. */
+  chanceOverride?: number;
   minDeltaOverride?: number;
   maxDeltaOverride?: number;
 }

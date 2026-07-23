@@ -42,7 +42,7 @@ function applyThemeOverride(condition: ConditionDto, override: ThemeConditionOve
   }
   return {
     ...condition,
-    chance: condition.chance * (override.chanceMultiplier ?? 1),
+    chance: override.chanceOverride ?? condition.chance * (override.chanceMultiplier ?? 1),
     minDelta: override.minDeltaOverride ?? condition.minDelta,
     maxDelta: override.maxDeltaOverride ?? condition.maxDelta,
   };
