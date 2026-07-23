@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
 import { Markup } from 'telegraf';
+import { getDuelWinStats } from '../../services/duel.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
 import { getExperienceRankLabel } from '../../utils/experience-rank.util';
@@ -31,6 +32,12 @@ export async function handleStatusCommand(ctx: Context): Promise<void> {
     lines.push(`🔥 Серія вчасних вимірів: ${user.streak_current} (рекорд: ${user.streak_best})`);
   } else if (user.streak_best > 1) {
     lines.push(`🔥 Рекорд серії вчасних вимірів: ${user.streak_best}`);
+  }
+
+  const duelStats = await getDuelWinStats(from.id);
+  if (duelStats.total > 0) {
+    const winRate = Math.round((duelStats.wins / duelStats.total) * 100);
+    lines.push(`⚔️ Перемоги в дуелях: ${duelStats.wins}/${duelStats.total} (${winRate}%)`);
   }
 
   await ctx.reply(

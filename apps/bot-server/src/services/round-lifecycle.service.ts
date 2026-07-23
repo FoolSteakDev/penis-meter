@@ -5,6 +5,7 @@ import type { GameStateHydratedDocument } from '../database/models/game-state.mo
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
 import { getCurrentRoundNumber } from '../utils/season-round.util';
+import { getDuelSettings } from './duel.service';
 import { getOrCreateGameState } from './game-state.service';
 import { assignDuelQuestsForRound } from './quest.service';
 import { takeTop3Snapshots } from './weekly-goals.service';
@@ -60,7 +61,8 @@ export async function initializeRound(
   await gameState.save();
 
   await takeTop3Snapshots(roundNumber, users, chatIds);
-  await assignDuelQuestsForRound(roundNumber, users);
+  const duelSettings = await getDuelSettings();
+  await assignDuelQuestsForRound(roundNumber, users, duelSettings.quest_targets);
 
   if (bot) {
     const text = `🎭 Нова тема тижня: ${theme.name}\n${theme.description}`;

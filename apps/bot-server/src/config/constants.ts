@@ -44,17 +44,9 @@ export const CLIMBER_QUEST_REWARD_CM = 5;
 /** Шанс, що конкретний юзер отримає індивідуальний квест на старт раунду. */
 export const INDIVIDUAL_QUEST_CHANCE = 0.4;
 
-export const DUEL_QUEST_TARGETS = [1, 2, 3, 5];
-
-/** [ціль перемог, бонус см за виконання], відповідає DUEL_QUEST_TARGETS. */
-export const DUEL_QUEST_REWARD_CM: Record<number, number> = {
-  1: 2,
-  2: 4,
-  3: 7,
-  5: 12,
-};
-
 // --- Дуелі (/duel) ---
+// Стріки квесту "виграй N дуелей" (ціль + нагорода) - адмін-налаштовувані,
+// див. DuelSettingsModel.quest_targets, а не константи тут.
 
 /** Скільки хвилин виклик на дуель чекає на відповідь опонента, перш ніж протермінуватись. */
 export const DUEL_CHALLENGE_TTL_MINUTES = 10;

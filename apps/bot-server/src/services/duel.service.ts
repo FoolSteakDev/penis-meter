@@ -121,7 +121,7 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   const loser = challengerWins ? target : challenger;
 
   const roundNumber = getCurrentRoundNumber();
-  const questReward = await registerDuelWin(winner.telegram_id, roundNumber);
+  const questReward = await registerDuelWin(winner.telegram_id, roundNumber, settings.quest_targets);
 
   await applyDuelDelta(winner, questReward ? amount + questReward : amount);
   await applyDuelDelta(loser, -amount);
@@ -165,4 +165,20 @@ export async function getPersonalDuelHistory(telegramId: number): Promise<DuelHi
   })
     .sort({ created_at: -1 })
     .limit(DUEL_HISTORY_LIMIT);
+}
+
+export interface DuelWinStats {
+  wins: number;
+  total: number;
+}
+
+/** По ВСІЙ історії (не лише останніх DUEL_HISTORY_LIMIT) - для % перемог у /status. */
+export async function getDuelWinStats(telegramId: number): Promise<DuelWinStats> {
+  const [total, wins] = await Promise.all([
+    DuelHistoryModel.countDocuments({
+      $or: [{ challenger_telegram_id: telegramId }, { target_telegram_id: telegramId }],
+    }),
+    DuelHistoryModel.countDocuments({ winner_telegram_id: telegramId }),
+  ]);
+  return { wins, total };
 }

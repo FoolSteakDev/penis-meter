@@ -99,6 +99,15 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DuelQuestTargetDto": {
+        "dataType": "refObject",
+        "properties": {
+            "target": {"dataType":"double","required":true},
+            "rewardCm": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "DuelSettingsDto": {
         "dataType": "refObject",
         "properties": {
@@ -106,6 +115,7 @@ const models: TsoaRoute.Models = {
             "minDelta": {"dataType":"double","required":true},
             "maxDelta": {"dataType":"double","required":true},
             "isEnabled": {"dataType":"boolean","required":true},
+            "questTargets": {"dataType":"array","array":{"dataType":"refObject","ref":"DuelQuestTargetDto"},"required":true},
             "createdAt": {"dataType":"datetime","required":true},
             "updatedAt": {"dataType":"datetime","required":true},
         },
@@ -118,6 +128,7 @@ const models: TsoaRoute.Models = {
             "minDelta": {"dataType":"double"},
             "maxDelta": {"dataType":"double"},
             "isEnabled": {"dataType":"boolean"},
+            "questTargets": {"dataType":"array","array":{"dataType":"refObject","ref":"DuelQuestTargetDto"}},
         },
         "additionalProperties": false,
     },

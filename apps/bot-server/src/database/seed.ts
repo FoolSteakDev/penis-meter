@@ -125,7 +125,19 @@ async function seed(): Promise<void> {
 
   await DuelSettingsModel.updateOne(
     {},
-    { $setOnInsert: { min_delta: 1, max_delta: 5, is_enabled: true } },
+    {
+      $setOnInsert: {
+        min_delta: 1,
+        max_delta: 5,
+        is_enabled: true,
+        quest_targets: [
+          { target: 1, reward_cm: 2 },
+          { target: 2, reward_cm: 4 },
+          { target: 3, reward_cm: 7 },
+          { target: 5, reward_cm: 12 },
+        ],
+      },
+    },
     { upsert: true },
   );
   console.log('[seed] ensured duel settings exist');

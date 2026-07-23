@@ -79,11 +79,17 @@ export interface UpdateConditionRequest {
   config?: Record<string, unknown>;
 }
 
+export interface DuelQuestTargetDto {
+  target: number;
+  rewardCm: number;
+}
+
 export interface DuelSettingsDto {
   id: string;
   minDelta: number;
   maxDelta: number;
   isEnabled: boolean;
+  questTargets: DuelQuestTargetDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -92,6 +98,7 @@ export interface UpdateDuelSettingsRequest {
   minDelta?: number;
   maxDelta?: number;
   isEnabled?: boolean;
+  questTargets?: DuelQuestTargetDto[];
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {

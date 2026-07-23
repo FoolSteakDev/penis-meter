@@ -1,12 +1,30 @@
 import { Body, Get, Patch, Route, Tags, Controller } from 'tsoa';
+import { ApiError } from '../api-error';
 import { getDuelSettings } from '../../services/duel.service';
-import type { DuelSettingsDto } from '../../dto/duel-settings.dto';
+import type { DuelQuestTargetDto, DuelSettingsDto } from '../../dto/duel-settings.dto';
 import { mapDuelSettingsDocumentToDto } from '../../mappers/duel-settings.mapper';
 
 export interface UpdateDuelSettingsRequest {
   minDelta?: number;
   maxDelta?: number;
   isEnabled?: boolean;
+  questTargets?: DuelQuestTargetDto[];
+}
+
+function validateQuestTargets(questTargets: DuelQuestTargetDto[]): void {
+  const seenTargets = new Set<number>();
+  for (const entry of questTargets) {
+    if (!Number.isInteger(entry.target) || entry.target <= 0) {
+      throw new ApiError(400, 'Кожен стрік має мати ціль перемог - ціле число більше 0');
+    }
+    if (!Number.isFinite(entry.rewardCm) || entry.rewardCm < 0) {
+      throw new ApiError(400, 'Нагорода за стрік має бути числом не менше 0');
+    }
+    if (seenTargets.has(entry.target)) {
+      throw new ApiError(400, `Ціль перемог ${entry.target} вже є в списку - дублікати заборонені`);
+    }
+    seenTargets.add(entry.target);
+  }
 }
 
 @Route('duel-settings')
@@ -20,10 +38,17 @@ export class DuelSettingsController extends Controller {
 
   @Patch()
   public async updateDuelSettings(@Body() body: UpdateDuelSettingsRequest): Promise<DuelSettingsDto> {
+    if (body.questTargets !== undefined) {
+      validateQuestTargets(body.questTargets);
+    }
+
     const settings = await getDuelSettings();
     if (body.minDelta !== undefined) settings.min_delta = body.minDelta;
     if (body.maxDelta !== undefined) settings.max_delta = body.maxDelta;
     if (body.isEnabled !== undefined) settings.is_enabled = body.isEnabled;
+    if (body.questTargets !== undefined) {
+      settings.quest_targets = body.questTargets.map((t) => ({ target: t.target, reward_cm: t.rewardCm }));
+    }
     await settings.save();
     return mapDuelSettingsDocumentToDto(settings);
   }

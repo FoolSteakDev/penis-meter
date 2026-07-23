@@ -224,6 +224,24 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"DuelQuestTargetDto": {
+				"properties": {
+					"target": {
+						"type": "number",
+						"format": "double"
+					},
+					"rewardCm": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"target",
+					"rewardCm"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"DuelSettingsDto": {
 				"properties": {
 					"id": {
@@ -240,6 +258,12 @@
 					"isEnabled": {
 						"type": "boolean"
 					},
+					"questTargets": {
+						"items": {
+							"$ref": "#/components/schemas/DuelQuestTargetDto"
+						},
+						"type": "array"
+					},
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
@@ -254,6 +278,7 @@
 					"minDelta",
 					"maxDelta",
 					"isEnabled",
+					"questTargets",
 					"createdAt",
 					"updatedAt"
 				],
@@ -272,6 +297,12 @@
 					},
 					"isEnabled": {
 						"type": "boolean"
+					},
+					"questTargets": {
+						"items": {
+							"$ref": "#/components/schemas/DuelQuestTargetDto"
+						},
+						"type": "array"
 					}
 				},
 				"type": "object",
