@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import ConditionsPage from './pages/ConditionsPage';
-import UsersPage from './pages/UsersPage';
+import ConditionsPage from './pages/conditions-page';
+import SettingsPage from './pages/settings-page';
+import UsersPage from './pages/users-page';
 
-type Tab = 'users' | 'conditions';
+type Tab = 'users' | 'conditions' | 'settings';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Користувачі' },
   { id: 'conditions', label: 'Умови росту' },
+  { id: 'settings', label: 'Налаштування' },
 ];
 
 export default function App() {
@@ -36,7 +38,9 @@ export default function App() {
           ))}
         </nav>
 
-        {tab === 'users' ? <UsersPage /> : <ConditionsPage />}
+        {tab === 'users' && <UsersPage />}
+        {tab === 'conditions' && <ConditionsPage />}
+        {tab === 'settings' && <SettingsPage />}
       </main>
     </div>
   );

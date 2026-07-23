@@ -6,6 +6,8 @@ import {  fetchMiddlewares, ExpressTemplateService } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { UsersController } from './../controllers/users.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { DuelSettingsController } from './../controllers/duel-settings.controller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ConditionsController } from './../controllers/conditions.controller';
 import type { Request as ExRequest, Response as ExResponse, RequestHandler, Router } from 'express';
 
@@ -93,6 +95,29 @@ const models: TsoaRoute.Models = {
             "username": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}]},
             "firstName": {"dataType":"string"},
             "work": {"ref":"UpdateUserWorkRequest"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DuelSettingsDto": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "minDelta": {"dataType":"double","required":true},
+            "maxDelta": {"dataType":"double","required":true},
+            "isEnabled": {"dataType":"boolean","required":true},
+            "createdAt": {"dataType":"datetime","required":true},
+            "updatedAt": {"dataType":"datetime","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateDuelSettingsRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "minDelta": {"dataType":"double"},
+            "maxDelta": {"dataType":"double"},
+            "isEnabled": {"dataType":"boolean"},
         },
         "additionalProperties": false,
     },
@@ -230,6 +255,65 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'updateUser',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsDuelSettingsController_getDuelSettings: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/duel-settings',
+            ...(fetchMiddlewares<RequestHandler>(DuelSettingsController)),
+            ...(fetchMiddlewares<RequestHandler>(DuelSettingsController.prototype.getDuelSettings)),
+
+            async function DuelSettingsController_getDuelSettings(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsDuelSettingsController_getDuelSettings, request, response });
+
+                const controller = new DuelSettingsController();
+
+              await templateService.apiHandler({
+                methodName: 'getDuelSettings',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsDuelSettingsController_updateDuelSettings: Record<string, TsoaRoute.ParameterSchema> = {
+                body: {"in":"body","name":"body","required":true,"ref":"UpdateDuelSettingsRequest"},
+        };
+        app.patch('/duel-settings',
+            ...(fetchMiddlewares<RequestHandler>(DuelSettingsController)),
+            ...(fetchMiddlewares<RequestHandler>(DuelSettingsController.prototype.updateDuelSettings)),
+
+            async function DuelSettingsController_updateDuelSettings(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsDuelSettingsController_updateDuelSettings, request, response });
+
+                const controller = new DuelSettingsController();
+
+              await templateService.apiHandler({
+                methodName: 'updateDuelSettings',
                 controller,
                 response,
                 next,

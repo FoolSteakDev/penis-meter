@@ -9,10 +9,10 @@ import {
   getSeasonBounds,
   getSeasonNumber,
   isLastRoundOfSeason,
-} from '../utils/seasonRound.util';
-import { getOrCreateGameState } from './gameState.service';
-import { getAllChatIds, getActiveUsers, initializeRound } from './roundLifecycle.service';
-import { processClimberQuests, processMeasurementCountQuests } from './weeklyGoals.service';
+} from '../utils/season-round.util';
+import { getOrCreateGameState } from './game-state.service';
+import { getAllChatIds, getActiveUsers, initializeRound } from './round-lifecycle.service';
+import { processClimberQuests, processMeasurementCountQuests } from './weekly-goals.service';
 
 const SEASON_TOP_SIZE = 10;
 

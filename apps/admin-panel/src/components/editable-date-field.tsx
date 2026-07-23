@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { toKyivDateInputValue } from '../utils/kyivTime';
+import { toKyivDateInputValue } from '../utils/kyiv-time';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 

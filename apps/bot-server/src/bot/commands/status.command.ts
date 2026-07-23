@@ -1,8 +1,9 @@
 import type { Context } from 'telegraf';
+import { Markup } from 'telegraf';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
-import { getExperienceRankLabel } from '../../utils/experienceRank.util';
-import { getSizeTierLabel } from '../../utils/sizeTier.util';
+import { getExperienceRankLabel } from '../../utils/experience-rank.util';
+import { getSizeTierLabel } from '../../utils/size-tier.util';
 
 export async function handleStatusCommand(ctx: Context): Promise<void> {
   const from = ctx.from;
@@ -32,5 +33,8 @@ export async function handleStatusCommand(ctx: Context): Promise<void> {
     lines.push(`🔥 Рекорд серії вчасних вимірів: ${user.streak_best}`);
   }
 
-  await ctx.reply(lines.join('\n'));
+  await ctx.reply(
+    lines.join('\n'),
+    Markup.inlineKeyboard([[Markup.button.callback('⚔️ Історія дуелей', 'duel:history:me')]]),
+  );
 }

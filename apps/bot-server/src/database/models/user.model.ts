@@ -1,5 +1,5 @@
 import { Schema, model, type HydratedDocument } from 'mongoose';
-import { getDefaultLastWeekendAnchor } from '../../utils/workSchedule.util';
+import { getDefaultLastWeekendAnchor } from '../../utils/work-schedule.util';
 
 export interface UserWork {
   schedule: number[];

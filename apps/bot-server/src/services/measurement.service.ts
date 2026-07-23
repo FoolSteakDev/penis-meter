@@ -6,19 +6,17 @@ import {
 } from '../config/constants';
 import { ConditionModel } from '../database/models/condition.model';
 import type { UserHydratedDocument } from '../database/models/user.model';
-import type { ThemeConditionOverride } from '../data/roundThemes.data';
+import type { ThemeConditionOverride } from '../data/round-themes.data';
 import type { ConditionDto } from '../dto/condition.dto';
 import { envConfig } from '../config/env.config';
 import { mapConditionDocumentToDto } from '../mappers/condition.mapper';
 import { mapUserDocumentToDto } from '../mappers/user.mapper';
 import { genericModifier } from '../modifiers/generic.modifier';
 import { modifierRegistry } from '../modifiers/modifier.registry';
-import type { GrowthModifierContext } from '../modifiers/growthModifier.types';
-import { getActiveTheme, getThemeOverrideForCondition } from './gameState.service';
-import { getDuelChanceOverrideForUser } from './quest.service';
-import { ensureRoundInitialized } from './roundLifecycle.service';
+import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
+import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
+import { ensureRoundInitialized } from './round-lifecycle.service';
 import { nowUtc } from '../utils/date.util';
-import { getCurrentRoundNumber } from '../utils/seasonRound.util';
 
 export interface MeasurementOutcome {
   previousValue: number;
@@ -56,7 +54,6 @@ export async function performMeasurement(
 ): Promise<MeasurementOutcome> {
   const gameState = await ensureRoundInitialized();
   const activeTheme = getActiveTheme(gameState);
-  const roundNumber = getCurrentRoundNumber();
 
   const conditionDocs = await ConditionModel.find({
     is_enabled: true,
@@ -74,16 +71,7 @@ export async function performMeasurement(
     const handler = modifierRegistry.get(conditionDoc.code) ?? genericModifier;
 
     const themeOverride = getThemeOverrideForCondition(activeTheme, conditionDoc.code);
-    let conditionDto = applyThemeOverride(mapConditionDocumentToDto(conditionDoc), themeOverride);
-
-    // Персональний квест "виграй N дуелей" (п.5) перебиває навіть тему -
-    // це фіксований особистий шанс, а не множник.
-    if (conditionDoc.code === 'duel') {
-      const personalChance = await getDuelChanceOverrideForUser(user.telegram_id, roundNumber);
-      if (personalChance !== null) {
-        conditionDto = { ...conditionDto, chance: personalChance };
-      }
-    }
+    const conditionDto = applyThemeOverride(mapConditionDocumentToDto(conditionDoc), themeOverride);
 
     const context: GrowthModifierContext = {
       user: userDto,

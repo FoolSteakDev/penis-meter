@@ -224,6 +224,59 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"DuelSettingsDto": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"minDelta": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxDelta": {
+						"type": "number",
+						"format": "double"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"minDelta",
+					"maxDelta",
+					"isEnabled",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateDuelSettingsRequest": {
+				"properties": {
+					"minDelta": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxDelta": {
+						"type": "number",
+						"format": "double"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
 			"DeltaMode": {
 				"type": "string",
 				"enum": [
@@ -501,6 +554,58 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/UpdateUserRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/duel-settings": {
+			"get": {
+				"operationId": "GetDuelSettings",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DuelSettingsDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"DuelSettings"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"patch": {
+				"operationId": "UpdateDuelSettings",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DuelSettingsDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"DuelSettings"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateDuelSettingsRequest"
 							}
 						}
 					}

@@ -1,6 +1,6 @@
-import { getTodayHistoricalEvent } from '../services/historicalDay.service';
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { getTodayHistoricalEvent } from '../services/historical-day.service';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 export class HistoricalDayModifier implements GrowthModifierHandler {
   code = 'historical_day';

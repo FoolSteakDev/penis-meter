@@ -5,9 +5,9 @@ import {
   type CreateConditionRequest,
   type DeltaMode,
 } from "../api/client";
-import { EditableFixedValuesField } from "../components/EditableFixedValuesField";
-import { EditableNumberField } from "../components/EditableNumberField";
-import { ToggleSwitch } from "../components/ToggleSwitch";
+import { EditableFixedValuesField } from "../components/editable-fixed-values-field";
+import { EditableNumberField } from "../components/editable-number-field";
+import { ToggleSwitch } from "../components/toggle-switch";
 
 export default function ConditionsPage() {
   const [conditions, setConditions] = useState<ConditionDto[]>([]);

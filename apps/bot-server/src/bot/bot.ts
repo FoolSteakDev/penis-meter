@@ -1,12 +1,19 @@
 import { Telegraf } from 'telegraf';
 import { envConfig } from '../config/env.config';
-import { recordChatMessage } from '../services/chatActivity.service';
-import { handleGlobalRatingCommand } from './commands/globalRating.command';
+import { recordChatMessage } from '../services/chat-activity.service';
+import { handleDuelHistoryCommand, handleDuelHistoryMeAction } from './commands/duel-history.command';
+import {
+  handleDuelAcceptAction,
+  handleDuelCommand,
+  handleDuelDeclineAction,
+  handleDuelInviteAction,
+} from './commands/duel.command';
+import { handleGlobalRatingCommand } from './commands/global-rating.command';
 import { handleMetrCommand } from './commands/metr.command';
 import { handleRatingCommand } from './commands/rating.command';
 import { handleRoundCommand } from './commands/round.command';
 import { handleSeasonCommand } from './commands/season.command';
-import { handleSeasonHistoryCommand } from './commands/seasonHistory.command';
+import { handleSeasonHistoryCommand } from './commands/season-history.command';
 import { handleStatusCommand } from './commands/status.command';
 
 const BOT_COMMANDS = [
@@ -17,6 +24,8 @@ const BOT_COMMANDS = [
   { command: 'season', description: 'Поточний сезон, твій приріст і місце в топі' },
   { command: 'round', description: 'Поточний раунд, тема тижня і твій прогрес' },
   { command: 'season_history', description: 'Чемпіони минулих сезонів' },
+  { command: 'duel', description: 'Викликати когось у чаті на дуель' },
+  { command: 'duel_history', description: 'Історія дуелей цього чату' },
 ];
 
 export function createBot(): Telegraf {
@@ -36,6 +45,13 @@ export function createBot(): Telegraf {
   bot.command('season', handleSeasonCommand);
   bot.command('round', handleRoundCommand);
   bot.command('season_history', handleSeasonHistoryCommand);
+  bot.command('duel', handleDuelCommand);
+  bot.command('duel_history', handleDuelHistoryCommand);
+
+  bot.action(/^duel:invite:\d+:\d+$/, handleDuelInviteAction);
+  bot.action(/^duel:accept:[a-f0-9]{24}$/, handleDuelAcceptAction);
+  bot.action(/^duel:decline:[a-f0-9]{24}$/, handleDuelDeclineAction);
+  bot.action('duel:history:me', handleDuelHistoryMeAction);
 
   bot.telegram.setMyCommands(BOT_COMMANDS).catch((error) => {
     console.error('[bot] failed to register command list', error);

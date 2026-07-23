@@ -79,6 +79,21 @@ export interface UpdateConditionRequest {
   config?: Record<string, unknown>;
 }
 
+export interface DuelSettingsDto {
+  id: string;
+  minDelta: number;
+  maxDelta: number;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateDuelSettingsRequest {
+  minDelta?: number;
+  maxDelta?: number;
+  isEnabled?: boolean;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -115,4 +130,9 @@ export const api = {
     request<ConditionDto>(`/conditions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
   deleteCondition: (id: string) => request<void>(`/conditions/${id}`, { method: 'DELETE' }),
+
+  getDuelSettings: () => request<DuelSettingsDto>('/duel-settings'),
+
+  updateDuelSettings: (body: UpdateDuelSettingsRequest) =>
+    request<DuelSettingsDto>('/duel-settings', { method: 'PATCH', body: JSON.stringify(body) }),
 };

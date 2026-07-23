@@ -1,6 +1,6 @@
 import { BASE_CONDITION_CODE } from '../config/constants';
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 export class BaseModifier implements GrowthModifierHandler {
   code = BASE_CONDITION_CODE;

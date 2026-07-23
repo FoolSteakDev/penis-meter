@@ -1,6 +1,6 @@
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import { isRestDayForUser } from '../utils/workSchedule.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import { isRestDayForUser } from '../utils/work-schedule.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 export class WeekendModifier implements GrowthModifierHandler {
   code = 'weekend';

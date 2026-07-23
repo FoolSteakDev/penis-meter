@@ -1,6 +1,6 @@
 import { fetchCityWeather, pickRandomCity, type CityWeather, type WeatherCategory } from '../services/weather.service';
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 const CATEGORY_LABELS: Record<WeatherCategory, string> = {
   clear: 'ясно',

@@ -1,12 +1,11 @@
 import { BaseModifier } from './base.modifier';
-import { ChatActivityModifier } from './chatActivity.modifier';
+import { ChatActivityModifier } from './chat-activity.modifier';
 import { CriticalModifier } from './critical.modifier';
 import { CryptoModifier } from './crypto.modifier';
 import { CurrencyModifier } from './currency.modifier';
-import { DuelModifier } from './duel.modifier';
-import type { GrowthModifierHandler } from './growthModifier.types';
-import { HistoricalDayModifier } from './historicalDay.modifier';
-import { MoonPhaseModifier } from './moonPhase.modifier';
+import type { GrowthModifierHandler } from './growth-modifier.types';
+import { HistoricalDayModifier } from './historical-day.modifier';
+import { MoonPhaseModifier } from './moon-phase.modifier';
 import { WeatherModifier } from './weather.modifier';
 import { WeekendModifier } from './weekend.modifier';
 
@@ -17,7 +16,6 @@ const handlers: GrowthModifierHandler[] = [
   new CriticalModifier(),
   new CurrencyModifier(),
   new MoonPhaseModifier(),
-  new DuelModifier(),
   new CryptoModifier(),
   new HistoricalDayModifier(),
   new ChatActivityModifier(),

@@ -1,6 +1,6 @@
 import type { Context } from 'telegraf';
 import { getGlobalRating } from '../../services/user.service';
-import { getSizeTierLabel } from '../../utils/sizeTier.util';
+import { getSizeTierLabel } from '../../utils/size-tier.util';
 
 export async function handleGlobalRatingCommand(ctx: Context): Promise<void> {
   const rating = await getGlobalRating();

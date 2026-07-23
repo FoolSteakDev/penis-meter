@@ -1,6 +1,6 @@
 import { getBtcHourlyChange, type BtcPriceChange } from '../services/crypto.service';
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 const SIGNIFICANT_CHANGE_PERCENT = 0.5;
 

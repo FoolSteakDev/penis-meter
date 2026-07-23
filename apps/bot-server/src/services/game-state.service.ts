@@ -1,5 +1,5 @@
-import { GameStateModel, type GameStateHydratedDocument } from '../database/models/gameState.model';
-import { ROUND_THEMES, type RoundTheme, type ThemeConditionOverride } from '../data/roundThemes.data';
+import { GameStateModel, type GameStateHydratedDocument } from '../database/models/game-state.model';
+import { ROUND_THEMES, type RoundTheme, type ThemeConditionOverride } from '../data/round-themes.data';
 
 export async function getOrCreateGameState(): Promise<GameStateHydratedDocument> {
   const existing = await GameStateModel.findOne();

@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import type { Telegraf } from 'telegraf';
-import { processRoundTransitions } from '../services/roundProcessor.service';
+import { processRoundTransitions } from '../services/round-processor.service';
 
 const CRON_EXPRESSION = '*/15 * * * *';
 
@@ -14,7 +14,7 @@ async function runRoundTransitions(bot: Telegraf): Promise<void> {
 
 /**
  * Раз на 15 хв перевіряє, чи не настав кінець раунду/сезону, і якщо так -
- * надсилає підсумки в чати та скидає лічильники (див. roundProcessor.service.ts).
+ * надсилає підсумки в чати та скидає лічильники (див. round-processor.service.ts).
  * Раунди/сезони мають гранулярність у днях, тож 15 хв - з великим запасом.
  */
 export function startRoundScheduler(bot: Telegraf): void {

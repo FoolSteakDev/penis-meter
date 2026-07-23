@@ -1,5 +1,5 @@
 import { CLIMBER_QUEST_REWARD_CM, MEASUREMENT_COUNT_QUEST_TIERS } from '../config/constants';
-import { RoundChatSnapshotModel } from '../database/models/roundChatSnapshot.model';
+import { RoundChatSnapshotModel } from '../database/models/round-chat-snapshot.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 
 function userLabel(u: { username: string | null; first_name: string }): string {

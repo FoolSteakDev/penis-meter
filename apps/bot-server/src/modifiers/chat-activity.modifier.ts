@@ -1,6 +1,6 @@
-import { getMessageCountLastHour } from '../services/chatActivity.service';
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { getMessageCountLastHour } from '../services/chat-activity.service';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 const DEFAULT_MESSAGE_THRESHOLD = 20;
 

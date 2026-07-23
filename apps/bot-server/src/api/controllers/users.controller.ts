@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch, Path, Query, Route, Tags } from 'tsoa';
-import { ApiError } from '../apiError';
+import { ApiError } from '../api-error';
 import { UserModel } from '../../database/models/user.model';
 import type { UserDto } from '../../dto/user.dto';
 import { mapUserDocumentToDto } from '../../mappers/user.mapper';

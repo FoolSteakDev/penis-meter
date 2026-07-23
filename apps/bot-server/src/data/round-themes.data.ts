@@ -14,7 +14,7 @@ export interface RoundTheme {
 
 /**
  * Пул тем для тематичних раундів. Одна тема обирається чистим рандомом на
- * старт кожного раунду (див. gameState.service.ts::ensureRoundInitialized).
+ * старт кожного раунду (див. game-state.service.ts::ensureRoundInitialized).
  * Оверрайди діють лише на час раунду й не змінюють самі `conditions` у БД.
  */
 export const ROUND_THEMES: RoundTheme[] = [
@@ -39,12 +39,6 @@ export const ROUND_THEMES: RoundTheme[] = [
     overrides: [
       { conditionCode: 'weekend', chanceMultiplier: 1.5, minDeltaOverride: 3, maxDeltaOverride: 10 },
     ],
-  },
-  {
-    code: 'duel_week',
-    name: 'Тиждень дуелей',
-    description: 'Дуелі трапляються значно частіше цього тижня.',
-    overrides: [{ conditionCode: 'duel', chanceMultiplier: 2.5 }],
   },
   {
     code: 'unlucky_week',

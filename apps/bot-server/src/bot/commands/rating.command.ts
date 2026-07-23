@@ -1,6 +1,6 @@
 import type { Context } from 'telegraf';
 import { getChatRating } from '../../services/user.service';
-import { getSizeTierLabel } from '../../utils/sizeTier.util';
+import { getSizeTierLabel } from '../../utils/size-tier.util';
 
 export async function handleRatingCommand(ctx: Context): Promise<void> {
   if (!ctx.chat || ctx.chat.type === 'private') {

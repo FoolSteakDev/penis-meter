@@ -1,10 +1,10 @@
 import type { Context } from 'telegraf';
 import { SEASON_START_DATE } from '../../config/constants';
-import { getActiveTheme } from '../../services/gameState.service';
+import { getActiveTheme } from '../../services/game-state.service';
 import { getActiveDuelQuest } from '../../services/quest.service';
-import { ensureRoundInitialized } from '../../services/roundLifecycle.service';
+import { ensureRoundInitialized } from '../../services/round-lifecycle.service';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
-import { getCurrentRoundInfo, getDaysUntil } from '../../utils/seasonRound.util';
+import { getCurrentRoundInfo, getDaysUntil } from '../../utils/season-round.util';
 
 export async function handleRoundCommand(ctx: Context): Promise<void> {
   const from = ctx.from;

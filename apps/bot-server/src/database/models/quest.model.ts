@@ -12,7 +12,7 @@ export interface QuestDocument {
   progress: number;
   is_completed: boolean;
   reward_applied: boolean;
-  /** Дані, специфічні для типу квеста (напр. буст шансу для duel_wins). */
+  /** Дані, специфічні для типу квеста. Поки що не використовується жодним типом. */
   config: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;

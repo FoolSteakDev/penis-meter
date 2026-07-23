@@ -1,9 +1,4 @@
-import {
-  DUEL_QUEST_CHANCE_BOOST,
-  DUEL_QUEST_REWARD_CM,
-  DUEL_QUEST_TARGETS,
-  INDIVIDUAL_QUEST_CHANCE,
-} from '../config/constants';
+import { DUEL_QUEST_REWARD_CM, DUEL_QUEST_TARGETS, INDIVIDUAL_QUEST_CHANCE } from '../config/constants';
 import { QuestModel, type QuestHydratedDocument } from '../database/models/quest.model';
 import type { UserHydratedDocument } from '../database/models/user.model';
 
@@ -29,7 +24,6 @@ export async function assignDuelQuestsForRound(roundNumber: number, users: UserH
       progress: 0,
       is_completed: false,
       reward_applied: false,
-      config: { chanceBoost: DUEL_QUEST_CHANCE_BOOST },
     });
   }
 }
@@ -43,25 +37,14 @@ export async function getActiveDuelQuest(telegramId: number, roundNumber: number
   });
 }
 
-/** Персональний оверрайд шансу умови "дуель" для юзера, якщо в нього є активний квест. */
-export async function getDuelChanceOverrideForUser(telegramId: number, roundNumber: number): Promise<number | null> {
-  const quest = await getActiveDuelQuest(telegramId, roundNumber);
-  if (!quest) {
-    return null;
-  }
-  const boost = quest.config.chanceBoost;
-  return typeof boost === 'number' ? boost : DUEL_QUEST_CHANCE_BOOST;
-}
-
 /**
  * Викликається після перемоги в дуелі. Повертає нагороду (см), якщо квест
  * щойно виконано цим виміром, інакше null.
  *
- * ВАЖЛИВО: сама нагорода НЕ пишеться в БД тут - викликач (duel.modifier.ts)
- * має додати її до своєї `delta`, щоб вона пройшла через єдиний
- * performMeasurement.save() разом з рештою приросту. Окремий `$inc` тут
- * створював гонку: performMeasurement пізніше перезаписував user.value зі
- * застарілого значення в пам'яті, тихо стираючи щойно застосовану нагороду.
+ * ВАЖЛИВО: сама нагорода НЕ пишеться в БД тут - викликач (duel.service.ts)
+ * має сам застосувати її до `value`/`round_growth`/`season_growth` переможця
+ * в тій самій транзакції, що й дельту дуелі, щоб уникнути гонки з паралельним
+ * оновленням користувача.
  */
 export async function registerDuelWin(telegramId: number, roundNumber: number): Promise<number | null> {
   const quest = await QuestModel.findOne({

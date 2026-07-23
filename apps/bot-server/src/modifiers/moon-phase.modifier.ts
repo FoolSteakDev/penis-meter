@@ -1,6 +1,6 @@
-import { getCurrentMoonPhase } from '../services/moonPhase.service';
-import { rollBaseDelta } from '../utils/deltaRoll.util';
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import { getCurrentMoonPhase } from '../services/moon-phase.service';
+import { rollBaseDelta } from '../utils/delta-roll.util';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 const FULL_MOON_THRESHOLD = 0.85;
 

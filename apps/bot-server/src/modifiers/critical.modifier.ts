@@ -1,4 +1,4 @@
-import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growthModifier.types';
+import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 function randomInRange(min: number, max: number): number {
   return Math.random() * (max - min) + min;

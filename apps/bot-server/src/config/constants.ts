@@ -1,14 +1,14 @@
-export const DEFAULT_MEASUREMENT_COOLDOWN_HOURS = 2;
+export const DEFAULT_MEASUREMENT_COOLDOWN_HOURS = 4;
 
 export const DEFAULT_STARTING_VALUE_CM = 10;
 
 export const RATING_LIMIT = 10;
 
-export const BASE_CONDITION_CODE = 'base';
+export const BASE_CONDITION_CODE = "base";
 
 // День 0 сезону/раунду. Один раз зафіксована дата - все інше (номер
 // раунду/сезону) виводиться з неї чистою модульною арифметикою.
-export const SEASON_START_DATE = '2026-07-13T00:00:00.000Z';
+export const SEASON_START_DATE = "2026-07-13T00:00:00.000Z";
 
 export const ROUND_LENGTH_DAYS = 7;
 
@@ -26,7 +26,10 @@ export const EXPERIENCE_PER_STREAK_POINT = 0.5;
 // --- Щотижневі квести "для кожного" (п.4) ---
 
 /** [поріг вимірів за раунд, бонус см], відсортовано за зростанням порогу. */
-export const MEASUREMENT_COUNT_QUEST_TIERS: [threshold: number, rewardCm: number][] = [
+export const MEASUREMENT_COUNT_QUEST_TIERS: [
+  threshold: number,
+  rewardCm: number,
+][] = [
   [12, 2],
   [24, 5],
   [36, 9],
@@ -51,4 +54,10 @@ export const DUEL_QUEST_REWARD_CM: Record<number, number> = {
   5: 12,
 };
 
-export const DUEL_QUEST_CHANCE_BOOST = 0.75;
+// --- Дуелі (/duel) ---
+
+/** Скільки хвилин виклик на дуель чекає на відповідь опонента, перш ніж протермінуватись. */
+export const DUEL_CHALLENGE_TTL_MINUTES = 10;
+
+/** Скільки останніх дуелей показувати в /duel_history та в особистій історії з /status. */
+export const DUEL_HISTORY_LIMIT = 10;

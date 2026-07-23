@@ -1,13 +1,13 @@
 import type { Dayjs } from 'dayjs';
 import type { Telegraf } from 'telegraf';
-import { ROUND_THEMES, type RoundTheme } from '../data/roundThemes.data';
-import type { GameStateHydratedDocument } from '../database/models/gameState.model';
+import { ROUND_THEMES, type RoundTheme } from '../data/round-themes.data';
+import type { GameStateHydratedDocument } from '../database/models/game-state.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
-import { getCurrentRoundNumber } from '../utils/seasonRound.util';
-import { getOrCreateGameState } from './gameState.service';
+import { getCurrentRoundNumber } from '../utils/season-round.util';
+import { getOrCreateGameState } from './game-state.service';
 import { assignDuelQuestsForRound } from './quest.service';
-import { takeTop3Snapshots } from './weeklyGoals.service';
+import { takeTop3Snapshots } from './weekly-goals.service';
 
 function pickRandomTheme(): RoundTheme {
   return ROUND_THEMES[Math.floor(Math.random() * ROUND_THEMES.length)];

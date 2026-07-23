@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api, type UserDto } from '../api/client';
-import { EditableDateField } from '../components/EditableDateField';
-import { EditableNumberField } from '../components/EditableNumberField';
-import { formatKyivDateTime } from '../utils/kyivTime';
+import { EditableDateField } from '../components/editable-date-field';
+import { EditableNumberField } from '../components/editable-number-field';
+import { formatKyivDateTime } from '../utils/kyiv-time';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserDto[]>([]);

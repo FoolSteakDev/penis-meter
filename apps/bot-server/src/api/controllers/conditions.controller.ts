@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Patch, Path, Post, Route, Tags } from 'tsoa';
-import { ApiError } from '../apiError';
+import { ApiError } from '../api-error';
 import { ConditionModel, type DeltaMode } from '../../database/models/condition.model';
 import type { ConditionDto } from '../../dto/condition.dto';
 import { mapConditionDocumentToDto } from '../../mappers/condition.mapper';

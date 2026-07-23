@@ -2,7 +2,7 @@ import cors from 'cors';
 import express, { Router, type Express, type NextFunction, type Request, type Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { ValidateError } from 'tsoa';
-import { ApiError } from './api/apiError';
+import { ApiError } from './api/api-error';
 import { RegisterRoutes } from './api/generated/routes';
 import swaggerDocument from './api/generated/swagger.json';
 import { envConfig } from './config/env.config';

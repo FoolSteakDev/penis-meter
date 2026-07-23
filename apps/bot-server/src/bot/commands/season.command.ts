@@ -1,7 +1,7 @@
 import type { Context } from 'telegraf';
 import { SEASON_START_DATE } from '../../config/constants';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
-import { getCurrentRoundInfo, getDaysUntil, getSeasonBounds } from '../../utils/seasonRound.util';
+import { getCurrentRoundInfo, getDaysUntil, getSeasonBounds } from '../../utils/season-round.util';
 
 export async function handleSeasonCommand(ctx: Context): Promise<void> {
   const from = ctx.from;

@@ -1,5 +1,6 @@
 import { connectMongo } from './mongo.connection';
 import { ConditionModel } from './models/condition.model';
+import { DuelSettingsModel } from './models/duel-settings.model';
 
 interface SeedCondition {
   code: string;
@@ -68,15 +69,6 @@ const SEED_CONDITIONS: SeedCondition[] = [
     is_protected: false,
   },
   {
-    code: 'duel',
-    name: 'Дуель',
-    description: 'Випадковий учасник чату - частина приросту переходить від одного до іншого.',
-    chance: 0.08,
-    min_delta: 1,
-    max_delta: 5,
-    is_protected: false,
-  },
-  {
     code: 'crypto',
     name: 'Курс криптовалюти',
     description: 'Результат залежить від зміни курсу BTC за останню годину.',
@@ -130,6 +122,14 @@ async function seed(): Promise<void> {
   }
 
   console.log(`[seed] ensured ${SEED_CONDITIONS.length} conditions exist`);
+
+  await DuelSettingsModel.updateOne(
+    {},
+    { $setOnInsert: { min_delta: 1, max_delta: 5, is_enabled: true } },
+    { upsert: true },
+  );
+  console.log('[seed] ensured duel settings exist');
+
   process.exit(0);
 }
 

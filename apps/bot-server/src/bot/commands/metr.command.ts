@@ -2,7 +2,7 @@ import type { Context } from 'telegraf';
 import { performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
-import { getSizeTierLabel } from '../../utils/sizeTier.util';
+import { getSizeTierLabel } from '../../utils/size-tier.util';
 
 export async function handleMetrCommand(ctx: Context): Promise<void> {
   const from = ctx.from;
