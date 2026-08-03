@@ -10,6 +10,11 @@ import {
   handleDuelInviteAction,
 } from './commands/duel.command';
 import { handleGlobalRatingCommand } from './commands/global-rating.command';
+import {
+  handleHideMenuCommand,
+  handleMenuCommand,
+  registerMenuButtons,
+} from './commands/menu.command';
 import { handleMetrCommand } from './commands/metr.command';
 import { handleRatingCommand } from './commands/rating.command';
 import { handleRoundCommand } from './commands/round.command';
@@ -18,6 +23,8 @@ import { handleSeasonHistoryCommand } from './commands/season-history.command';
 import { handleStatusCommand } from './commands/status.command';
 
 const BOT_COMMANDS = [
+  { command: 'menu', description: 'Показати меню з кнопками' },
+  { command: 'hide_menu', description: 'Сховати меню з кнопками' },
   { command: 'metr', description: 'Виміряти (раз на 2 години)' },
   { command: 'status', description: 'Поточний результат і час до наступного виміру' },
   { command: 'rating', description: 'Топ-10 у цьому чаті' },
@@ -40,6 +47,8 @@ export function createBot(): Telegraf {
     return next();
   });
 
+  bot.command('menu', handleMenuCommand);
+  bot.command('hide_menu', handleHideMenuCommand);
   bot.command('metr', handleMetrCommand);
   bot.command('status', handleStatusCommand);
   bot.command('rating', handleRatingCommand);
@@ -50,6 +59,8 @@ export function createBot(): Telegraf {
   bot.command('duel', handleDuelCommand);
   bot.command('duel_history', handleDuelHistoryCommand);
   bot.command('admin', handleAdminCommand);
+
+  registerMenuButtons(bot);
 
   bot.action(/^duel:invite:\d+:\d+$/, handleDuelInviteAction);
   bot.action(/^duel:accept:[a-f0-9]{24}$/, handleDuelAcceptAction);
