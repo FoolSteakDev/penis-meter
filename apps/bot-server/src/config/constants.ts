@@ -49,7 +49,10 @@ export const INDIVIDUAL_QUEST_CHANCE = 0.4;
 // див. DuelSettingsModel.quest_targets, а не константи тут.
 
 /** Скільки хвилин виклик на дуель чекає на відповідь опонента, перш ніж протермінуватись. */
-export const DUEL_CHALLENGE_TTL_MINUTES = 10;
+export const DUEL_CHALLENGE_TTL_MINUTES = 60;
+
+/** Скільки одночасних pending-викликів може тримати один гравець-challenger. */
+export const DUEL_CHALLENGE_MAX_PENDING = 5;
 
 /** Скільки останніх дуелей показувати в /duel_history та в особистій історії з /status. */
 export const DUEL_HISTORY_LIMIT = 10;

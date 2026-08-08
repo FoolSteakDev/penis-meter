@@ -1,4 +1,8 @@
-import { DUEL_CHALLENGE_TTL_MINUTES, DUEL_HISTORY_LIMIT } from '../config/constants';
+import {
+  DUEL_CHALLENGE_MAX_PENDING,
+  DUEL_CHALLENGE_TTL_MINUTES,
+  DUEL_HISTORY_LIMIT,
+} from '../config/constants';
 import { DuelChallengeModel, type DuelChallengeHydratedDocument } from '../database/models/duel-challenge.model';
 import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/models/duel-history.model';
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
@@ -7,6 +11,7 @@ import { registerDuelWin } from './quest.service';
 import { getCurrentRoundNumber } from '../utils/season-round.util';
 
 export interface DuelResolution {
+  chatId: number;
   winnerTelegramId: number;
   loserTelegramId: number;
   amount: number;
@@ -64,13 +69,15 @@ export async function createChallenge(
     throw new Error('Цього учасника вже немає серед відомих боту в цьому чаті');
   }
 
-  const pendingExisting = await DuelChallengeModel.findOne({
+  const pendingCount = await DuelChallengeModel.countDocuments({
     challenger_telegram_id: challengerTelegramId,
     status: 'pending',
     expires_at: { $gt: new Date() },
   });
-  if (pendingExisting) {
-    throw new Error('У тебе вже є активний виклик на дуель - дочекайся відповіді');
+  if (pendingCount >= DUEL_CHALLENGE_MAX_PENDING) {
+    throw new Error(
+      `У тебе вже є ${DUEL_CHALLENGE_MAX_PENDING} активних викликів на дуель - дочекайся відповіді або протермінування`,
+    );
   }
 
   const expiresAt = new Date(Date.now() + DUEL_CHALLENGE_TTL_MINUTES * 60 * 1000);
@@ -138,11 +145,21 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   });
 
   return {
+    chatId: challenge.chat_id,
     winnerTelegramId: winner.telegram_id,
     loserTelegramId: loser.telegram_id,
     amount,
     questReward,
   };
+}
+
+/**
+ * Виклик створено в БД, але доставити його опоненту в особисті не вдалось
+ * (ще не писав боту) - видаляємо, інакше він завис би до TTL і зайняв би
+ * одне з DUEL_CHALLENGE_MAX_PENDING місць challenger'а.
+ */
+export async function deleteUndeliveredChallenge(challengeId: string): Promise<void> {
+  await DuelChallengeModel.deleteOne({ _id: challengeId, status: 'pending' });
 }
 
 export async function declineChallenge(
