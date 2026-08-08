@@ -62,7 +62,7 @@ export function createBot(): Telegraf {
 
   registerMenuButtons(bot);
 
-  bot.action(/^duel:invite:\d+:\d+:-?\d+$/, handleDuelInviteAction);
+  bot.action(/^duel:invite:\d+:\d+$/, handleDuelInviteAction);
   bot.action(/^duel:accept:[a-f0-9]{24}$/, handleDuelAcceptAction);
   bot.action(/^duel:decline:[a-f0-9]{24}$/, handleDuelDeclineAction);
   bot.action('duel:history:me', handleDuelHistoryMeAction);
