@@ -125,11 +125,32 @@
 						"type": "number",
 						"format": "double"
 					},
+					"roundBestDelta": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"roundMeasurementCount": {
+						"type": "number",
+						"format": "double"
+					},
 					"titles": {
 						"items": {
 							"$ref": "#/components/schemas/UserTitleDto"
 						},
 						"type": "array"
+					},
+					"experience": {
+						"type": "number",
+						"format": "double"
+					},
+					"streakCurrent": {
+						"type": "number",
+						"format": "double"
+					},
+					"streakBest": {
+						"type": "number",
+						"format": "double"
 					},
 					"createdAt": {
 						"type": "string",
@@ -151,7 +172,12 @@
 					"work",
 					"seasonGrowth",
 					"roundGrowth",
+					"roundBestDelta",
+					"roundMeasurementCount",
 					"titles",
+					"experience",
+					"streakCurrent",
+					"streakBest",
 					"createdAt",
 					"updatedAt"
 				],

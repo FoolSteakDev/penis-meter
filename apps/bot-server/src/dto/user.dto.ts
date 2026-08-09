@@ -26,7 +26,12 @@ export interface UserDto {
   work: UserWorkDto;
   seasonGrowth: number;
   roundGrowth: number;
+  roundBestDelta: number | null;
+  roundMeasurementCount: number;
   titles: UserTitleDto[];
+  experience: number;
+  streakCurrent: number;
+  streakBest: number;
   createdAt: Date;
   updatedAt: Date;
 }

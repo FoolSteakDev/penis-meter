@@ -16,6 +16,8 @@ export function mapUserDocumentToDto(doc: UserHydratedDocument | UserDocument): 
     },
     seasonGrowth: doc.season_growth ?? 0,
     roundGrowth: doc.round_growth ?? 0,
+    roundBestDelta: doc.round_best_delta ?? null,
+    roundMeasurementCount: doc.round_measurement_count ?? 0,
     titles: (doc.titles ?? []).map((title) => ({
       seasonNumber: title.season_number,
       rank: title.rank,
@@ -24,6 +26,9 @@ export function mapUserDocumentToDto(doc: UserHydratedDocument | UserDocument): 
       chatId: title.chat_id,
       awardedAt: title.awarded_at,
     })),
+    experience: doc.experience ?? 0,
+    streakCurrent: doc.streak_current ?? 0,
+    streakBest: doc.streak_best ?? 0,
     createdAt: doc.created_at,
     updatedAt: doc.updated_at,
   };

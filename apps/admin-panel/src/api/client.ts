@@ -5,6 +5,18 @@ export interface UserWorkDto {
   lastWeekend: string | null;
 }
 
+export type UserTitleCodeDto = 'champion' | 'silver' | 'bronze' | 'top10';
+export type UserTitleScopeDto = 'global' | 'chat';
+
+export interface UserTitleDto {
+  seasonNumber: number;
+  rank: number;
+  titleCode: UserTitleCodeDto;
+  scope: UserTitleScopeDto;
+  chatId: number | null;
+  awardedAt: string;
+}
+
 export interface UserDto {
   id: string;
   telegramId: number;
@@ -14,6 +26,14 @@ export interface UserDto {
   lastMeasurementAt: string | null;
   chats: number[];
   work: UserWorkDto;
+  seasonGrowth: number;
+  roundGrowth: number;
+  roundBestDelta: number | null;
+  roundMeasurementCount: number;
+  titles: UserTitleDto[];
+  experience: number;
+  streakCurrent: number;
+  streakBest: number;
   createdAt: string;
   updatedAt: string;
 }
