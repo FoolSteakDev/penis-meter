@@ -18,6 +18,9 @@ function randomInRange(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
 
+/** Скільки часу документ виклику живе ПІСЛЯ expires_at, перш ніж cleanup_at TTL-індекс його прибере - щоб історія лишалась для дебагу. */
+const CLEANUP_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * Дуель зачіпає обох учасників напряму (не через їхній власний /metr), тому
  * value/round_growth/season_growth/round_best_delta потрібно оновити тут
@@ -83,6 +86,7 @@ export async function createChallenge(
     target_telegram_id: targetTelegramId,
     status: 'pending',
     expires_at: expiresAt,
+    cleanup_at: new Date(expiresAt.getTime() + CLEANUP_GRACE_MS),
   });
 }
 
