@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { getGlobalRating } from '../../services/user.service';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
 
@@ -14,5 +15,5 @@ export async function handleGlobalRatingCommand(ctx: Context): Promise<void> {
     return `${index + 1}. ${label} - ${user.value} см (${getSizeTierLabel(user.value)})`;
   });
 
-  await ctx.reply(`🌍 Глобальний рейтинг:\n${lines.join('\n')}`);
+  await replyWithMenu(ctx, `🌍 Глобальний рейтинг:\n${lines.join('\n')}`);
 }

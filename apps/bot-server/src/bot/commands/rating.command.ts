@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { getChatRating } from '../../services/user.service';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
 
@@ -19,5 +20,5 @@ export async function handleRatingCommand(ctx: Context): Promise<void> {
     return `${index + 1}. ${label} - ${user.value} см (${getSizeTierLabel(user.value)})`;
   });
 
-  await ctx.reply(`🏆 Рейтинг чату:\n${lines.join('\n')}`);
+  await replyWithMenu(ctx, `🏆 Рейтинг чату:\n${lines.join('\n')}`);
 }

@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { ConcurrentMeasurementError, performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
@@ -51,5 +52,5 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
 
   lines.push(`📊 Стало: ${outcome.newValue} см (${getSizeTierLabel(outcome.newValue)})`);
 
-  await ctx.reply(lines.join('\n'));
+  await replyWithMenu(ctx, lines.join('\n'));
 }

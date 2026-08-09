@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import type { DuelHistoryHydratedDocument } from '../../database/models/duel-history.model';
 import { getChatDuelHistory, getPersonalDuelHistory } from '../../services/duel.service';
 import { getUserByTelegramId } from '../../services/user.service';
@@ -32,7 +33,7 @@ export async function handleDuelHistoryCommand(ctx: Context): Promise<void> {
   }
 
   const lines = await Promise.all(history.map(formatDuelLine));
-  await ctx.reply(`⚔️ Історія дуелей цього чату:\n${lines.join('\n')}`);
+  await replyWithMenu(ctx, `⚔️ Історія дуелей цього чату:\n${lines.join('\n')}`);
 }
 
 export async function handleDuelHistoryMeAction(ctx: Context): Promise<void> {

@@ -20,6 +20,7 @@ import {
 import { handleGlobalRatingCommand } from './commands/global-rating.command';
 import {
   handleHideMenuCommand,
+  handleMenuAction,
   handleMenuCommand,
   registerMenuButtons,
 } from './commands/menu.command';
@@ -99,6 +100,8 @@ export function createBot(): Telegraf {
   bot.on(message('text'), handleDuelStakeReply);
 
   registerMenuButtons(bot);
+
+  bot.action(/^m:\w+$/, handleMenuAction);
 
   bot.action(/^d:pick:\d+:\d+$/, handleDuelPickAction);
   bot.action(/^d:page:\d+:\d+$/, handleDuelPageAction);

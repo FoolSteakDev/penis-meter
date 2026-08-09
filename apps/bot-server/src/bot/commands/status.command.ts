@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
 import { Markup } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { getDuelWinStats } from '../../services/duel.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
@@ -40,7 +41,8 @@ export async function handleStatusCommand(ctx: Context): Promise<void> {
     lines.push(`⚔️ Перемоги в дуелях: ${duelStats.wins}/${duelStats.total} (${winRate}%)`);
   }
 
-  await ctx.reply(
+  await replyWithMenu(
+    ctx,
     lines.join('\n'),
     Markup.inlineKeyboard([[Markup.button.callback('⚔️ Історія дуелей', 'duel:history:me')]]),
   );

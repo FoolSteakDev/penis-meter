@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { SEASON_START_DATE } from '../../config/constants';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
 import { getCurrentRoundInfo, getDaysUntil, getSeasonBounds } from '../../utils/season-round.util';
@@ -39,5 +40,5 @@ export async function handleSeasonCommand(ctx: Context): Promise<void> {
     lines.push(`💬 Місце в топі цього чату: ${chatRank}`);
   }
 
-  await ctx.reply(lines.join('\n'));
+  await replyWithMenu(ctx, lines.join('\n'));
 }

@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { SeasonModel } from '../../database/models/season.model';
 import { userLabel } from '../../utils/user-label.util';
 
@@ -27,5 +28,5 @@ export async function handleSeasonHistoryCommand(ctx: Context): Promise<void> {
     return line;
   });
 
-  await ctx.reply(`🏆 Історія сезонів:\n${lines.join('\n')}`);
+  await replyWithMenu(ctx, `🏆 Історія сезонів:\n${lines.join('\n')}`);
 }

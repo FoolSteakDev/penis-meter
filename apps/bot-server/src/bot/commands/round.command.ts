@@ -1,4 +1,5 @@
 import type { Context } from 'telegraf';
+import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { SEASON_START_DATE } from '../../config/constants';
 import { getDuelSettings } from '../../services/duel.service';
 import { getActiveTheme } from '../../services/game-state.service';
@@ -53,5 +54,5 @@ export async function handleRoundCommand(ctx: Context): Promise<void> {
     lines.push(`🎯 Квест: виграй дуелей ${quest.progress}/${quest.target}`);
   }
 
-  await ctx.reply(lines.join('\n'));
+  await replyWithMenu(ctx, lines.join('\n'));
 }
