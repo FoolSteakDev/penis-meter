@@ -48,11 +48,9 @@ export const CLIMBER_QUEST_REWARD_CM = 5;
 export const INDIVIDUAL_QUEST_CHANCE = 0.4;
 
 // --- Дуелі (/duel) ---
-// Стріки квесту "виграй N дуелей" (ціль + нагорода) - адмін-налаштовувані,
-// див. DuelSettingsModel.quest_targets, а не константи тут.
-
-/** Скільки хвилин виклик на дуель чекає на відповідь опонента, перш ніж протермінуватись. */
-export const DUEL_CHALLENGE_TTL_MINUTES = 10;
+// Стріки квесту "виграй N дуелей" (ціль + нагорода), строк дії виклику
+// (challenge_ttl_minutes) і ліміт одночасних викликів (max_pending_challenges)
+// - адмін-налаштовувані, див. DuelSettingsModel, а не константи тут.
 
 /** Скільки останніх дуелей показувати в /duel_history та в особистій історії з /status. */
 export const DUEL_HISTORY_LIMIT = 10;

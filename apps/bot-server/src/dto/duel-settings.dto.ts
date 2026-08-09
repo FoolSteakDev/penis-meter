@@ -9,6 +9,8 @@ export interface DuelSettingsDto {
   maxDelta: number;
   isEnabled: boolean;
   questTargets: DuelQuestTargetDto[];
+  challengeTtlMinutes: number;
+  maxPendingChallenges: number;
   createdAt: Date;
   updatedAt: Date;
 }

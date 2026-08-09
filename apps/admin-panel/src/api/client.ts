@@ -110,6 +110,8 @@ export interface DuelSettingsDto {
   maxDelta: number;
   isEnabled: boolean;
   questTargets: DuelQuestTargetDto[];
+  challengeTtlMinutes: number;
+  maxPendingChallenges: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -119,6 +121,8 @@ export interface UpdateDuelSettingsRequest {
   maxDelta?: number;
   isEnabled?: boolean;
   questTargets?: DuelQuestTargetDto[];
+  challengeTtlMinutes?: number;
+  maxPendingChallenges?: number;
 }
 
 export type RoundThemeSource = 'admin' | 'random_fallback' | 'legacy';

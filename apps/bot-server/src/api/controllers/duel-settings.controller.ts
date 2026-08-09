@@ -9,6 +9,17 @@ export interface UpdateDuelSettingsRequest {
   maxDelta?: number;
   isEnabled?: boolean;
   questTargets?: DuelQuestTargetDto[];
+  challengeTtlMinutes?: number;
+  maxPendingChallenges?: number;
+}
+
+const CHALLENGE_TTL_MINUTES_RANGE = { min: 5, max: 10080 };
+const MAX_PENDING_CHALLENGES_RANGE = { min: 1, max: 20 };
+
+function validateIntegerInRange(value: number, range: { min: number; max: number }, label: string): void {
+  if (!Number.isInteger(value) || value < range.min || value > range.max) {
+    throw new ApiError(400, `${label} має бути цілим числом у межах [${range.min}, ${range.max}]`);
+  }
 }
 
 function validateQuestTargets(questTargets: DuelQuestTargetDto[]): void {
@@ -41,6 +52,12 @@ export class DuelSettingsController extends Controller {
     if (body.questTargets !== undefined) {
       validateQuestTargets(body.questTargets);
     }
+    if (body.challengeTtlMinutes !== undefined) {
+      validateIntegerInRange(body.challengeTtlMinutes, CHALLENGE_TTL_MINUTES_RANGE, 'Строк дії виклику (хв)');
+    }
+    if (body.maxPendingChallenges !== undefined) {
+      validateIntegerInRange(body.maxPendingChallenges, MAX_PENDING_CHALLENGES_RANGE, 'Ліміт одночасних викликів');
+    }
 
     const settings = await getDuelSettings();
     if (body.minDelta !== undefined) settings.min_delta = body.minDelta;
@@ -49,6 +66,8 @@ export class DuelSettingsController extends Controller {
     if (body.questTargets !== undefined) {
       settings.quest_targets = body.questTargets.map((t) => ({ target: t.target, reward_cm: t.rewardCm }));
     }
+    if (body.challengeTtlMinutes !== undefined) settings.challenge_ttl_minutes = body.challengeTtlMinutes;
+    if (body.maxPendingChallenges !== undefined) settings.max_pending_challenges = body.maxPendingChallenges;
     await settings.save();
     return mapDuelSettingsDocumentToDto(settings);
   }

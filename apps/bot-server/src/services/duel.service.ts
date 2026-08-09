@@ -1,4 +1,4 @@
-import { DUEL_CHALLENGE_TTL_MINUTES, DUEL_HISTORY_LIMIT } from '../config/constants';
+import { DUEL_HISTORY_LIMIT } from '../config/constants';
 import { DuelChallengeModel, type DuelChallengeHydratedDocument } from '../database/models/duel-challenge.model';
 import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/models/duel-history.model';
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
@@ -79,7 +79,7 @@ export async function createChallenge(
     throw new Error('У тебе вже є активний виклик на дуель - дочекайся відповіді');
   }
 
-  const expiresAt = new Date(Date.now() + DUEL_CHALLENGE_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(Date.now() + settings.challenge_ttl_minutes * 60 * 1000);
   return DuelChallengeModel.create({
     chat_id: chatId,
     challenger_telegram_id: challengerTelegramId,

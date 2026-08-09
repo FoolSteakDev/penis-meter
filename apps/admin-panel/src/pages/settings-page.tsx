@@ -164,6 +164,33 @@ function DuelSettingsPanel() {
             <span className="text-xs text-navy/50">см (мін/макс)</span>
           </div>
 
+          <div className="mt-3 flex items-center gap-2 text-sm font-medium text-navy">
+            Строк дії виклику
+            <EditableNumberField
+              value={duelSettings.challengeTtlMinutes}
+              step="1"
+              size="md"
+              onSave={async (challengeTtlMinutes) => {
+                const updated = await api.updateDuelSettings({ challengeTtlMinutes });
+                setDuelSettings(updated);
+              }}
+            />
+            <span className="text-xs text-navy/50">хв</span>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2 text-sm font-medium text-navy">
+            Ліміт одночасних викликів
+            <EditableNumberField
+              value={duelSettings.maxPendingChallenges}
+              step="1"
+              size="sm"
+              onSave={async (maxPendingChallenges) => {
+                const updated = await api.updateDuelSettings({ maxPendingChallenges });
+                setDuelSettings(updated);
+              }}
+            />
+          </div>
+
           <div className="mt-6 border-t border-navy/10 pt-5">
             <h3 className="mb-1 text-sm font-bold text-navy">
               🎯 Стріки квесту "виграй N дуелей"
