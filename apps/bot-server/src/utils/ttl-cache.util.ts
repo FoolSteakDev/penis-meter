@@ -20,7 +20,13 @@ export function createTtlCache<T>(ttlMs: number) {
         return existing.promise;
       }
 
-      const promise = load();
+      // Promise.resolve(...) - load() може повернути "thenable", який не є
+      // справжнім Promise (напр. Mongoose Query: await виконує запит і кидає
+      // "Query was already executed" при повторному await того самого
+      // об'єкта). Кілька паралельних викликів resolve() тут await-ять один і
+      // той самий закешований проміс - тож він мусить бути безпечним для
+      // повторного очікування.
+      const promise = Promise.resolve(load());
       store.set(key, { promise, expiresAt: now + ttlMs });
 
       try {
