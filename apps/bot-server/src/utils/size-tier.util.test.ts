@@ -1,25 +1,31 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSizeTierLabel } from './size-tier.util';
 
-describe('getSizeTierLabel', () => {
-  it('returns a non-empty label for a typical value', () => {
-    const label = getSizeTierLabel(15);
-    expect(typeof label).toBe('string');
-    expect(label.length).toBeGreaterThan(0);
+// Math.random замокано на 0 -> pickRandom завжди бере перший label тиру,
+// що робить getSizeTierLabel детермінованою і дає перевірити саме межі.
+beforeEach(() => {
+  vi.spyOn(Math, 'random').mockReturnValue(0);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('getSizeTierLabel - tier boundaries', () => {
+  it.each([
+    [120, 'За межами уявного ♾️'],
+    [119.99, 'Кінець всесвіту 💥'],
+    [90, 'Кінець всесвіту 💥'],
+    [89.99, 'Розрив реальності 🌀'],
+    [0, 'Мікропеніс'],
+    [-0.01, 'Мікропізда (реальна діра)'],
+    [-10, 'Мікропізда (реальна діра)'],
+    [-10.01, 'Чорна діра 🕳️'],
+  ])('value %d -> %s', (value, expected) => {
+    expect(getSizeTierLabel(value)).toBe(expected);
   });
 
-  it('returns a label for a negative value below the lowest tier', () => {
-    const label = getSizeTierLabel(-100);
-    expect(typeof label).toBe('string');
-    expect(label.length).toBeGreaterThan(0);
-  });
-
-  it('handles -Infinity without throwing', () => {
-    expect(() => getSizeTierLabel(Number.NEGATIVE_INFINITY)).not.toThrow();
-  });
-
-  it('handles the exact tier boundary consistently', () => {
-    expect(() => getSizeTierLabel(120)).not.toThrow();
-    expect(() => getSizeTierLabel(119.99)).not.toThrow();
+  it('handles -Infinity without throwing and returns the lowest tier', () => {
+    expect(getSizeTierLabel(Number.NEGATIVE_INFINITY)).toBe('Чорна діра 🕳️');
   });
 });
