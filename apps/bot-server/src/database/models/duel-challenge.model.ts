@@ -62,6 +62,7 @@ const duelChallengeSchema = new Schema<DuelChallengeDocument>(
 );
 
 duelChallengeSchema.index({ challenger_telegram_id: 1, status: 1 });
+duelChallengeSchema.index({ challenger_telegram_id: 1, target_telegram_id: 1, status: 1 });
 duelChallengeSchema.index({ status: 1, expires_at: 1 });
 duelChallengeSchema.index({ stake_prompt_message_id: 1 }, { sparse: true });
 duelChallengeSchema.index({ cleanup_at: 1 }, { expireAfterSeconds: 0 });

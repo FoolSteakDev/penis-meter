@@ -70,13 +70,27 @@ export async function createChallenge(
     throw new Error('Цього учасника вже немає серед відомих боту в цьому чаті');
   }
 
-  const pendingExisting = await DuelChallengeModel.findOne({
+  const pendingCount = await DuelChallengeModel.countDocuments({
     challenger_telegram_id: challengerTelegramId,
     status: 'pending',
     expires_at: { $gt: new Date() },
   });
-  if (pendingExisting) {
-    throw new Error('У тебе вже є активний виклик на дуель - дочекайся відповіді');
+  if (pendingCount >= settings.max_pending_challenges) {
+    throw new Error(
+      `У тебе вже ${settings.max_pending_challenges} активних викликів - дочекайся відповіді або скасуй один`,
+    );
+  }
+
+  // Без цього гравець витратить усі слоти на одну людину й заспамить чат.
+  const duplicate = await DuelChallengeModel.findOne({
+    challenger_telegram_id: challengerTelegramId,
+    target_telegram_id: targetTelegramId,
+    chat_id: chatId,
+    status: 'pending',
+    expires_at: { $gt: new Date() },
+  });
+  if (duplicate) {
+    throw new Error('Ти вже викликав цього гравця - дочекайся відповіді');
   }
 
   const expiresAt = new Date(Date.now() + settings.challenge_ttl_minutes * 60 * 1000);
