@@ -226,6 +226,10 @@ export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc(
     const users = await getActiveUsers();
 
     await announceRoundSummary(bot, users, endedRoundNumber);
+    // Квестові нагороди нараховуються тут, до resetRoundCounters() нижче -
+    // round_growth від них буде скинутий за мить, і це нормально (квест
+    // підсумовує вже завершений раунд), а season_growth лишається, бо
+    // resetRoundCounters() його не чіпає.
     await announceWeeklyQuests(bot, users, endedRoundNumber);
 
     if (isLastRoundOfSeason(endedRoundNumber)) {

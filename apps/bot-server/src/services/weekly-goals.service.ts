@@ -32,7 +32,10 @@ export async function processMeasurementCountQuests(users: UserHydratedDocument[
     }
 
     const [threshold, rewardCm] = best;
-    await UserModel.updateOne({ telegram_id: user.telegram_id }, { $inc: { value: rewardCm } });
+    await UserModel.updateOne(
+      { telegram_id: user.telegram_id },
+      { $inc: { value: rewardCm, round_growth: rewardCm, season_growth: rewardCm } },
+    );
     awards.push({ telegramId: user.telegram_id, label: userLabel(user), threshold, rewardCm });
   }
 
@@ -91,7 +94,10 @@ export async function processClimberQuests(
 
     for (const user of currentTop3) {
       if (!snapshot.top3_telegram_ids.includes(user.telegram_id)) {
-        await UserModel.updateOne({ telegram_id: user.telegram_id }, { $inc: { value: CLIMBER_QUEST_REWARD_CM } });
+        await UserModel.updateOne(
+          { telegram_id: user.telegram_id },
+          { $inc: { value: CLIMBER_QUEST_REWARD_CM, round_growth: CLIMBER_QUEST_REWARD_CM, season_growth: CLIMBER_QUEST_REWARD_CM } },
+        );
         awards.push({ chatId, telegramId: user.telegram_id, label: userLabel(user), rewardCm: CLIMBER_QUEST_REWARD_CM });
       }
     }
