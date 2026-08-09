@@ -34,6 +34,23 @@ export async function getUserByTelegramId(telegramId: number): Promise<UserHydra
   return UserModel.findOne({ telegram_id: telegramId });
 }
 
+/**
+ * "Дешеве" оновлення username/first_name для ВЖЕ відомого юзера - викликається
+ * з middleware в bot.ts на кожне повідомлення, щоб надійний @username-меншн у
+ * дуелях не деградував до tg://user?id= через застарілі дані. Свідомо НЕ
+ * створює нових користувачів (на відміну від findOrCreateUser) - інакше
+ * middleware засмічувало б БД усіма, хто просто написав щось у чаті.
+ */
+export async function refreshKnownUserProfile(info: TelegramUserInfo): Promise<void> {
+  await UserModel.updateOne(
+    {
+      telegram_id: info.telegramId,
+      $or: [{ username: { $ne: info.username } }, { first_name: { $ne: info.firstName } }],
+    },
+    { $set: { username: info.username, first_name: info.firstName } },
+  );
+}
+
 export async function getChatRating(chatId: number): Promise<UserDto[]> {
   const users = await UserModel.find({ chats: chatId })
     .sort({ value: -1 })

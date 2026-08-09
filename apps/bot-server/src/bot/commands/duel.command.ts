@@ -10,13 +10,10 @@ import {
 } from '../../services/duel.service';
 import { findOrCreateUser, getUserByTelegramId } from '../../services/user.service';
 import { userLabel } from '../../utils/user-label.util';
+import { mentionHtml } from '../utils/mention.util';
 
 async function userLabelByTelegramId(telegramId: number): Promise<string> {
   return userLabel(await getUserByTelegramId(telegramId));
-}
-
-function mentionHtml(telegramId: number, label: string): string {
-  return `<a href="tg://user?id=${telegramId}">${label}</a>`;
 }
 
 function getCallbackData(ctx: Context): string | null {
@@ -82,14 +79,17 @@ export async function handleDuelInviteAction(ctx: Context): Promise<void> {
 
   try {
     const challenge = await createChallenge(chat.id, challengerTelegramId, targetTelegramId);
-    const [challengerLabel, targetLabel] = await Promise.all([
-      userLabelByTelegramId(challengerTelegramId),
-      userLabelByTelegramId(targetTelegramId),
+    const [challenger, target] = await Promise.all([
+      getUserByTelegramId(challengerTelegramId),
+      getUserByTelegramId(targetTelegramId),
     ]);
+    if (!challenger || !target) {
+      throw new Error('Одного з учасників дуелі більше не знайдено');
+    }
 
-    await ctx.editMessageText(`⚔️ Виклик надіслано ${targetLabel}. Очікуємо на відповідь...`);
+    await ctx.editMessageText(`⚔️ Виклик надіслано ${userLabel(target)}. Очікуємо на відповідь...`);
     await ctx.reply(
-      `⚔️ ${mentionHtml(challengerTelegramId, challengerLabel)} викликає на дуель ${mentionHtml(targetTelegramId, targetLabel)}!`,
+      `⚔️ ${mentionHtml(challenger)} викликає на дуель ${mentionHtml(target)}!`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([

@@ -21,6 +21,7 @@ import { handleRoundCommand } from './commands/round.command';
 import { handleSeasonCommand } from './commands/season.command';
 import { handleSeasonHistoryCommand } from './commands/season-history.command';
 import { handleStatusCommand } from './commands/status.command';
+import { refreshKnownUserProfile } from '../services/user.service';
 
 /** «2 год», «1.5 год», «30 хв» - враховує дробові значення MEASUREMENT_COOLDOWN_HOURS (напр. 0.05 для тестів). */
 function formatCooldownLabel(hours: number): string {
@@ -53,6 +54,19 @@ export function createBot(): Telegraf {
     // теж накручує "активність чату" й спотворює статистику для chat_activity.
     if (ctx.chat && ctx.updateType === 'message') {
       recordChatMessage(ctx.chat.id);
+    }
+    // Без await - не блокуємо обробку апдейту заради дешевого оновлення
+    // профілю. Тримає username свіжим, щоб @username-меншн у дуелях
+    // (mention.util.ts::hasReliableMention) не деградував до менш надійного
+    // tg://user?id= через застарілі дані.
+    if (ctx.from) {
+      void refreshKnownUserProfile({
+        telegramId: ctx.from.id,
+        username: ctx.from.username ?? null,
+        firstName: ctx.from.first_name,
+      }).catch((error) => {
+        console.error('[bot] failed to refresh user profile', error);
+      });
     }
     return next();
   });
