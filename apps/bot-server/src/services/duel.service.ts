@@ -90,6 +90,29 @@ export async function createChallenge(
   });
 }
 
+/** Викликати одразу після успішного надсилання повідомлення з викликом у чат. */
+export async function recordChallengeInvite(
+  challengeId: string,
+  chatId: number,
+  messageId: number,
+): Promise<void> {
+  await DuelChallengeModel.updateOne(
+    { _id: challengeId },
+    { $set: { invite_chat_id: chatId, invite_message_id: messageId } },
+  );
+}
+
+/**
+ * Відкат для випадку, коли виклик створено в БД, але надіслати повідомлення
+ * в чат не вдалось (Telegram API впав, немає прав тощо) - інакше виклик
+ * назавжди лишається 'pending' і з'їдає слот, а гравці його не бачать.
+ * Фільтр по invite_message_id: null - захист від видалення вже успішно
+ * доставленого виклику, якщо цю функцію викликали помилково пізно.
+ */
+export async function deleteUndeliveredChallenge(challengeId: string): Promise<void> {
+  await DuelChallengeModel.deleteOne({ _id: challengeId, invite_message_id: null });
+}
+
 async function getRespondablePendingChallenge(
   challengeId: string,
   respondingTelegramId: number,

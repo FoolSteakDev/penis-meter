@@ -4,13 +4,15 @@ import type { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import {
   createChallenge,
   declineChallenge,
+  deleteUndeliveredChallenge,
   getDuelSettings,
   listDuelOpponents,
+  recordChallengeInvite,
   resolveChallenge,
 } from '../../services/duel.service';
 import { findOrCreateUser, getUserByTelegramId } from '../../services/user.service';
 import { userLabel } from '../../utils/user-label.util';
-import { mentionHtml } from '../utils/mention.util';
+import { hasReliableMention, mentionHtml } from '../utils/mention.util';
 
 async function userLabelByTelegramId(telegramId: number): Promise<string> {
   return userLabel(await getUserByTelegramId(telegramId));
@@ -77,8 +79,19 @@ export async function handleDuelInviteAction(ctx: Context): Promise<void> {
     return;
   }
 
+  // Окремо від надсилання в чат нижче: якщо ТУТ впаде (ліміт, дублікат,
+  // дуелі вимкнено) - виклику в БД ще нема, нічого відкочувати не треба.
+  let challenge;
   try {
-    const challenge = await createChallenge(chat.id, challengerTelegramId, targetTelegramId);
+    challenge = await createChallenge(chat.id, challengerTelegramId, targetTelegramId);
+  } catch (error) {
+    await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось створити виклик', {
+      show_alert: true,
+    });
+    return;
+  }
+
+  try {
     const [challenger, target] = await Promise.all([
       getUserByTelegramId(challengerTelegramId),
       getUserByTelegramId(targetTelegramId),
@@ -87,8 +100,11 @@ export async function handleDuelInviteAction(ctx: Context): Promise<void> {
       throw new Error('Одного з учасників дуелі більше не знайдено');
     }
 
-    await ctx.editMessageText(`⚔️ Виклик надіслано ${userLabel(target)}. Очікуємо на відповідь...`);
-    await ctx.reply(
+    // Завжди НОВЕ повідомлення (не editMessageText) - редагування не створює
+    // сповіщення в Telegram, а саме сповіщення й вирішує проблему "не всім
+    // приходить виклик".
+    const sent = await ctx.telegram.sendMessage(
+      chat.id,
       `⚔️ ${mentionHtml(challenger)} викликає на дуель ${mentionHtml(target)}!`,
       {
         parse_mode: 'HTML',
@@ -100,11 +116,30 @@ export async function handleDuelInviteAction(ctx: Context): Promise<void> {
         ]),
       },
     );
-    await ctx.answerCbQuery();
+    await recordChallengeInvite(challenge.id, chat.id, sent.message_id);
+
+    // Косметичне (список опонентів -> "Виклик надіслано..."), не критичне
+    // для доставки - падіння тут НЕ має відкочувати вже надісланий виклик.
+    try {
+      await ctx.editMessageText(`⚔️ Виклик надіслано ${userLabel(target)}. Очікуємо на відповідь...`);
+    } catch (editError) {
+      console.error(`[duel] failed to edit opponent-list message for challenge ${challenge.id}`, editError);
+    }
+
+    if (!hasReliableMention(target)) {
+      await ctx.answerCbQuery('Опонент без @username - сповіщення може не прийти, штовхни його в чаті', {
+        show_alert: true,
+      });
+    } else {
+      await ctx.answerCbQuery();
+    }
   } catch (error) {
-    await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось створити виклик', {
-      show_alert: true,
-    });
+    await deleteUndeliveredChallenge(challenge.id);
+    console.error(
+      `[duel] failed to deliver invite for challenge ${challenge.id} (chat ${chat.id}, target ${targetTelegramId})`,
+      error,
+    );
+    await ctx.answerCbQuery('Не вдалось надіслати виклик у чат - спробуй ще раз', { show_alert: true });
   }
 }
 
