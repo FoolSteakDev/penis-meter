@@ -1,6 +1,6 @@
 import type { Dayjs } from 'dayjs';
 import type { Telegraf } from 'telegraf';
-import { DEFAULT_STARTING_VALUE_CM } from '../config/constants';
+import { DEFAULT_STARTING_VALUE_CM, MAX_ANNOUNCED_CATCHUP_ROUNDS } from '../config/constants';
 import { SeasonModel, type SeasonChatTop, type SeasonTopEntry } from '../database/models/season.model';
 import { UserModel, type UserHydratedDocument, type UserTitleCode } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
@@ -20,7 +20,10 @@ function userLabel(u: { username: string | null; first_name: string }): string {
   return u.username ?? u.first_name;
 }
 
-async function sendMessageSafely(bot: Telegraf, chatId: number, text: string): Promise<void> {
+async function sendMessageSafely(bot: Telegraf, chatId: number, text: string, announce: boolean): Promise<void> {
+  if (!announce) {
+    return;
+  }
   try {
     await bot.telegram.sendMessage(chatId, text);
   } catch (error) {
@@ -59,7 +62,12 @@ async function performSeasonStartReset(): Promise<void> {
   console.log('[roundProcessor] one-time season-start reset applied to all users');
 }
 
-async function announceRoundSummary(bot: Telegraf, users: UserHydratedDocument[], endedRoundNumber: number): Promise<void> {
+async function announceRoundSummary(
+  bot: Telegraf,
+  users: UserHydratedDocument[],
+  endedRoundNumber: number,
+  announce: boolean,
+): Promise<void> {
   for (const chatId of getAllChatIds(users)) {
     const members = users.filter((u) => u.chats.includes(chatId));
     if (members.length === 0) continue;
@@ -83,12 +91,17 @@ async function announceRoundSummary(bot: Telegraf, users: UserHydratedDocument[]
     }
 
     if (lines.length > 1) {
-      await sendMessageSafely(bot, chatId, lines.join('\n'));
+      await sendMessageSafely(bot, chatId, lines.join('\n'), announce);
     }
   }
 }
 
-async function announceWeeklyQuests(bot: Telegraf, users: UserHydratedDocument[], endedRoundNumber: number): Promise<void> {
+async function announceWeeklyQuests(
+  bot: Telegraf,
+  users: UserHydratedDocument[],
+  endedRoundNumber: number,
+  announce: boolean,
+): Promise<void> {
   const measurementAwards = await processMeasurementCountQuests(users);
   const climberAwards = await processClimberQuests(users, getAllChatIds(users), endedRoundNumber);
 
@@ -111,7 +124,7 @@ async function announceWeeklyQuests(bot: Telegraf, users: UserHydratedDocument[]
   }
 
   for (const [chatId, lines] of byChat) {
-    await sendMessageSafely(bot, chatId, `🎯 Квести тижня:\n${lines.join('\n')}`);
+    await sendMessageSafely(bot, chatId, `🎯 Квести тижня:\n${lines.join('\n')}`, announce);
   }
 }
 
@@ -151,7 +164,12 @@ async function awardTitles(entries: SeasonTopEntry[], seasonNumber: number, scop
   }
 }
 
-async function announceSeasonSummary(bot: Telegraf, users: UserHydratedDocument[], endedSeasonNumber: number): Promise<void> {
+async function announceSeasonSummary(
+  bot: Telegraf,
+  users: UserHydratedDocument[],
+  endedSeasonNumber: number,
+  announce: boolean,
+): Promise<void> {
   const topGlobal = rankAndAward(users);
   await awardTitles(topGlobal, endedSeasonNumber, 'global', null);
 
@@ -171,6 +189,7 @@ async function announceSeasonSummary(bot: Telegraf, users: UserHydratedDocument[
         `🏆 Сезон ${endedSeasonNumber} завершено!\nЧемпіон цього чату: ${userLabel(top[0])} (+${top[0].growth} см за сезон)\nГлобальний чемпіон: ${
           topGlobal[0] ? `${userLabel(topGlobal[0])} (+${topGlobal[0].growth} см)` : '—'
         }`,
+        announce,
       );
     }
   }
@@ -210,30 +229,38 @@ export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc(
     await gameState.save();
   }
 
-  // Раунд 1 ще жодного разу не ініціалізований (тема/знімок/квести) - і
-  // жодного "кінця раунду" для нього самого немає, тому ініціалізуємо
-  // окремо перед основним циклом. Лише поки раунд 1 ще триває (last_processed
-  // === 0) - інакше цей виклик на кожному кроні відкочував current_theme_*
-  // назад на раунд 1, спричиняючи повторні "Нова тема тижня" й неправильну
-  // тему в /round.
+  // Холодний старт (порожня БД або довгий простій до першого запуску): не
+  // відтворюємо "прожиту" історію раундів заднім числом, а вважаємо систему
+  // щойно запущеною з поточного раунду. Узагальнення фікса з d1b654c (крон
+  // повторно ре-ініціалізував раунд 1) - тепер працює для старту на будь-якому
+  // номері раунду, а не лише на першому.
   if (gameState.last_processed_round_number === 0) {
-    await initializeRound(1, gameState, bot);
+    gameState.last_processed_round_number = Math.max(0, currentRoundNumber - 1);
+    await gameState.save();
+    await initializeRound(currentRoundNumber, gameState, bot);
+    return;
   }
 
   while (gameState.last_processed_round_number < currentRoundNumber - 1) {
     const endedRoundNumber = gameState.last_processed_round_number + 1;
     const newRoundNumber = endedRoundNumber + 1;
+    // Скільки раундів (включно з цим) ще лишилось доганяти - анонсуємо лише
+    // останні MAX_ANNOUNCED_CATCHUP_ROUNDS з них, старіші доганяємо мовчки
+    // (без bot.telegram.sendMessage), щоб довгий простій не засипав чати
+    // підсумками неіснуючих для гравців раундів.
+    const remainingRounds = currentRoundNumber - 1 - gameState.last_processed_round_number;
+    const announce = remainingRounds <= MAX_ANNOUNCED_CATCHUP_ROUNDS;
     const users = await getActiveUsers();
 
-    await announceRoundSummary(bot, users, endedRoundNumber);
+    await announceRoundSummary(bot, users, endedRoundNumber, announce);
     // Квестові нагороди нараховуються тут, до resetRoundCounters() нижче -
     // round_growth від них буде скинутий за мить, і це нормально (квест
     // підсумовує вже завершений раунд), а season_growth лишається, бо
     // resetRoundCounters() його не чіпає.
-    await announceWeeklyQuests(bot, users, endedRoundNumber);
+    await announceWeeklyQuests(bot, users, endedRoundNumber, announce);
 
     if (isLastRoundOfSeason(endedRoundNumber)) {
-      await announceSeasonSummary(bot, users, getSeasonNumber(endedRoundNumber));
+      await announceSeasonSummary(bot, users, getSeasonNumber(endedRoundNumber), announce);
     }
 
     await resetRoundCounters();

@@ -14,6 +14,9 @@ export const ROUND_LENGTH_DAYS = 7;
 
 export const ROUNDS_PER_SEASON = 4;
 
+/** Скільки завершених раундів максимум анонсуємо після простою - решту доганяємо мовчки. */
+export const MAX_ANNOUNCED_CATCHUP_ROUNDS = 1;
+
 // --- Streak/досвід ---
 
 /** Скільки годин ПОНАД кулдаун ще вважається "вчасним" виміром (не запізненням). */
