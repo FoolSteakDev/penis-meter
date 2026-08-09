@@ -15,6 +15,7 @@ describe('resolveChallenge - concurrency (phase 1.3)', () => {
       challenger_telegram_id: 1,
       target_telegram_id: 2,
       status: 'pending',
+      stake: 5,
       expires_at: expiresAt,
       cleanup_at: new Date(expiresAt.getTime() + 7 * 24 * 60 * 60 * 1000),
     });

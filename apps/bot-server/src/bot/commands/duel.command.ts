@@ -463,8 +463,11 @@ export async function handleDuelAcceptAction(ctx: Context): Promise<void> {
     ]);
 
     const questNote = result.questReward ? `\n🎯 Квест виконано! Бонус: +${result.questReward} см` : '';
+    const reducedNote = result.stakeReduced
+      ? ` (ставку зменшено до ${result.amount} см - у програвшого не вистачило)`
+      : '';
     await ctx.editMessageText(
-      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${result.amount} см у ${loserLabel}!${questNote}`,
+      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${result.amount} см у ${loserLabel}!${reducedNote}${questNote}`,
     );
     await ctx.answerCbQuery();
   } catch (error) {

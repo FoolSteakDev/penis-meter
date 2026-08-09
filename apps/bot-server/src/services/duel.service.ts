@@ -16,6 +16,8 @@ export interface DuelResolution {
   winnerTelegramId: number;
   loserTelegramId: number;
   amount: number;
+  /** true, якщо amount < заявленої ставки - value програвшого впав нижче ставки між викликом і прийняттям. */
+  stakeReduced: boolean;
   questReward: number | null;
 }
 
@@ -332,9 +334,18 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   if (!challenger || !target) {
     throw new Error('Одного з учасників дуелі більше не знайдено');
   }
+  if (claimed.stake === null) {
+    throw new Error('У цього виклику не задано ставку - спробуй заново через /duel');
+  }
 
   const settings = await getDuelSettings();
-  const amount = roundCm(randomInRange(Math.abs(settings.min_delta), Math.abs(settings.max_delta)));
+
+  // Перевалідація: між викликом (до 12 год) і прийняттям value міг впасти -
+  // фактично списана сума не може перевищувати ПОТОЧНУ межу, навіть якщо на
+  // момент вибору ставки вона вкладалась.
+  const bounds = await getStakeBounds(claimed.challenger_telegram_id, claimed.target_telegram_id);
+  const amount = roundCm(Math.min(claimed.stake, bounds.max));
+  const stakeReduced = amount < claimed.stake;
 
   const challengerWins = Math.random() < 0.5;
   const winner = challengerWins ? challenger : target;
@@ -346,6 +357,9 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   await applyDuelDelta(winner, questReward ? amount + questReward : amount);
   await applyDuelDelta(loser, -amount);
 
+  // delta - це ФАКТИЧНО списана ставка (після перевалідації вище), а не
+  // заявлена на кроці 2; за потреби розрізнити - додати окреме поле
+  // requested_stake.
   await DuelHistoryModel.create({
     chat_id: claimed.chat_id,
     challenger_telegram_id: claimed.challenger_telegram_id,
@@ -358,6 +372,7 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
     winnerTelegramId: winner.telegram_id,
     loserTelegramId: loser.telegram_id,
     amount,
+    stakeReduced,
     questReward,
   };
 }
