@@ -1,6 +1,7 @@
 import type { Dayjs } from 'dayjs';
 import { nowUtc } from '../utils/date.util';
 import { fetchJson } from '../utils/http.util';
+import { createTtlCache } from '../utils/ttl-cache.util';
 
 export interface UsdRateChange {
   currentRate: number;
@@ -36,7 +37,11 @@ async function fetchMostRecentUsdRate(startDate: Dayjs, maxLookbackDays: number)
   return null;
 }
 
-export async function getUsdRateChange(): Promise<UsdRateChange> {
+const CURRENCY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const CURRENCY_CACHE_KEY = 'usd-rate-change';
+const currencyCache = createTtlCache<UsdRateChange>(CURRENCY_CACHE_TTL_MS);
+
+async function getUsdRateChangeUncached(): Promise<UsdRateChange> {
   // current і previous шукаємо паралельно (від "сьогодні" і від "вчора"), а
   // не послідовно одне за одним - у гіршому разі 2×MAX_LOOKBACK_DAYS
   // запитів виконуються одночасно, а не до 2×5 послідовних. Компроміс: якщо
@@ -62,4 +67,8 @@ export async function getUsdRateChange(): Promise<UsdRateChange> {
     previousRate: previous.rate,
     changePercent,
   };
+}
+
+export async function getUsdRateChange(): Promise<UsdRateChange> {
+  return currencyCache.resolve(CURRENCY_CACHE_KEY, getUsdRateChangeUncached);
 }

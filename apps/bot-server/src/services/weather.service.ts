@@ -1,5 +1,6 @@
 import citiesData from '../data/cities.json';
 import { fetchJson } from '../utils/http.util';
+import { createTtlCache } from '../utils/ttl-cache.util';
 
 export interface City {
   name: string;
@@ -41,7 +42,10 @@ export function pickRandomCity(): City {
   return cities[Math.floor(Math.random() * cities.length)];
 }
 
-export async function fetchCityWeather(city: City): Promise<CityWeather> {
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+const weatherCache = createTtlCache<CityWeather>(WEATHER_CACHE_TTL_MS);
+
+async function fetchCityWeatherUncached(city: City): Promise<CityWeather> {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,precipitation,weather_code`;
   const data = await fetchJson<{
     current: { temperature_2m: number; weather_code: number };
@@ -52,4 +56,8 @@ export async function fetchCityWeather(city: City): Promise<CityWeather> {
     temperatureC: data.current.temperature_2m,
     category: categorizeWeatherCode(data.current.weather_code),
   };
+}
+
+export async function fetchCityWeather(city: City): Promise<CityWeather> {
+  return weatherCache.resolve(`${city.lat},${city.lon}`, () => fetchCityWeatherUncached(city));
 }

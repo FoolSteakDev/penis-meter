@@ -1,4 +1,5 @@
 import { fetchJson } from '../utils/http.util';
+import { createTtlCache } from '../utils/ttl-cache.util';
 
 export interface BtcPriceChange {
   currentPrice: number;
@@ -7,8 +8,11 @@ export interface BtcPriceChange {
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const CRYPTO_CACHE_TTL_MS = 5 * 60 * 1000;
+const CRYPTO_CACHE_KEY = 'btc-hourly-change';
+const cryptoCache = createTtlCache<BtcPriceChange>(CRYPTO_CACHE_TTL_MS);
 
-export async function getBtcHourlyChange(): Promise<BtcPriceChange> {
+async function getBtcHourlyChangeUncached(): Promise<BtcPriceChange> {
   const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1';
   const data = await fetchJson<{ prices: [number, number][] }>(url);
   const prices = data.prices;
@@ -30,4 +34,8 @@ export async function getBtcHourlyChange(): Promise<BtcPriceChange> {
   const changePercent = ((currentPrice - previousPrice) / previousPrice) * 100;
 
   return { currentPrice, previousPrice, changePercent };
+}
+
+export async function getBtcHourlyChange(): Promise<BtcPriceChange> {
+  return cryptoCache.resolve(CRYPTO_CACHE_KEY, getBtcHourlyChangeUncached);
 }
