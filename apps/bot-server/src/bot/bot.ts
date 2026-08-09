@@ -49,7 +49,7 @@ const BOT_COMMANDS = [
   { command: 'season', description: 'Поточний сезон, твій приріст і місце в топі' },
   { command: 'round', description: 'Поточний раунд, тема тижня і твій прогрес' },
   { command: 'season_history', description: 'Чемпіони минулих сезонів' },
-  { command: 'duel', description: 'Викликати когось у чаті на дуель' },
+  { command: 'duel', description: 'Викликати на дуель зі ставкою' },
   { command: 'duel_history', description: 'Історія дуелей цього чату' },
   { command: 'admin', description: 'Відкрити адмін-панель' },
 ];
