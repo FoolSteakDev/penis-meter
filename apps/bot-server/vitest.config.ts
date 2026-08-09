@@ -7,5 +7,9 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,
+    // Усі тестові файли ділять один mongodb-memory-server (див. global-setup.ts),
+    // а tests/setup.ts чистить колекції в afterEach - паралельні файли гасили б
+    // дані одне в одного. Файл сюди дешевий (~60 тестів), послідовність важливіша.
+    fileParallelism: false,
   },
 });
