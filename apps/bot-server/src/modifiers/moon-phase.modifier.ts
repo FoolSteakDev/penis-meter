@@ -12,18 +12,27 @@ export class MoonPhaseModifier implements GrowthModifierHandler {
   }
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
-    const { maxDelta } = context.condition;
+    const { minDelta, maxDelta } = context.condition;
     const moon = getCurrentMoonPhase();
 
     const baseDelta = rollBaseDelta(context.condition);
-    // чим ближче до повного місяця, тим сильніший позитивний "вовкулаче" бонус
-    const bonus = moon.fullness ** 2 * Math.abs(maxDelta) * 0.8;
-    const delta = Math.round((baseDelta + bonus) * 100) / 100;
+    // -1 (молодик) .. +1 (повний місяць) - симетрично навколо півмісяця,
+    // на відміну від старої версії, де бонус був завжди в плюс і умова не
+    // мала жодного ризику.
+    const influence = (moon.fullness - 0.5) * 2;
+    const swing = influence >= 0 ? Math.abs(maxDelta) : Math.abs(minDelta);
+    // influence * Math.abs(influence) зберігає квадратичну криву старої
+    // версії, але з правильним знаком.
+    const bonus = influence * Math.abs(influence) * swing * 0.5;
+    const rawDelta = baseDelta + bonus;
+    const delta = Math.round(Math.min(maxDelta, Math.max(minDelta, rawDelta)) * 100) / 100;
 
     const message =
       moon.fullness >= FULL_MOON_THRESHOLD
         ? `🌕 ${moon.name}! Вовкулаче зростання цієї ночі неконтрольоване!`
-        : `🌗 Зараз ${moon.name.toLowerCase()}.`;
+        : moon.fullness <= 1 - FULL_MOON_THRESHOLD
+          ? `🌑 ${moon.name} - енергії обмаль.`
+          : `🌗 Зараз ${moon.name.toLowerCase()}.`;
 
     return { delta, message };
   }
