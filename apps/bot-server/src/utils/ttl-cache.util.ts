@@ -30,5 +30,13 @@ export function createTtlCache<T>(ttlMs: number) {
         throw error;
       }
     },
+    /** Примусово скинути запис (або весь кеш, якщо key не передано) - для явної інвалідації після запису в БД. */
+    invalidate(key?: string): void {
+      if (key === undefined) {
+        store.clear();
+      } else {
+        store.delete(key);
+      }
+    },
   };
 }

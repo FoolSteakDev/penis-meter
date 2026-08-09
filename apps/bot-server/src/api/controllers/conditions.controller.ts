@@ -4,6 +4,7 @@ import { ConditionModel, type DeltaMode } from '../../database/models/condition.
 import type { ConditionDto } from '../../dto/condition.dto';
 import { mapConditionDocumentToDto } from '../../mappers/condition.mapper';
 import { modifierRegistry } from '../../modifiers/modifier.registry';
+import { invalidateConditionsCache } from '../../services/measurement.service';
 
 export interface CreateConditionRequest {
   code: string;
@@ -92,6 +93,7 @@ export class ConditionsController extends Controller {
       is_protected: false,
     });
 
+    invalidateConditionsCache();
     this.setStatus(201);
     return mapConditionDocumentToDto(created);
   }
@@ -133,6 +135,7 @@ export class ConditionsController extends Controller {
       throw new ApiError(404, 'Condition not found');
     }
 
+    invalidateConditionsCache();
     return mapConditionDocumentToDto(updated);
   }
 
@@ -148,6 +151,7 @@ export class ConditionsController extends Controller {
     }
 
     await condition.deleteOne();
+    invalidateConditionsCache();
     this.setStatus(204);
   }
 }

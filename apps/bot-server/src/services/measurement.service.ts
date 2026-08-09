@@ -4,7 +4,7 @@ import {
   EXPERIENCE_PER_STREAK_POINT,
   STREAK_GRACE_HOURS,
 } from '../config/constants';
-import { ConditionModel } from '../database/models/condition.model';
+import { ConditionModel, type ConditionHydratedDocument } from '../database/models/condition.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import type { ThemeConditionOverride } from '../data/round-themes.data';
 import type { ConditionDto } from '../dto/condition.dto';
@@ -17,6 +17,7 @@ import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
 import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
 import { ensureRoundInitialized } from './round-lifecycle.service';
 import { nowUtc } from '../utils/date.util';
+import { createTtlCache } from '../utils/ttl-cache.util';
 
 /** Паралельний вимір того самого юзера вже пройшов CAS-перевірку раніше за цей. */
 export class ConcurrentMeasurementError extends Error {
@@ -32,6 +33,25 @@ export interface MeasurementOutcome {
   delta: number;
   conditionName: string | null;
   message: string;
+}
+
+const CONDITIONS_CACHE_TTL_MS = 60 * 1000;
+const CONDITIONS_CACHE_KEY = 'all';
+const conditionsCache = createTtlCache<ConditionHydratedDocument[]>(CONDITIONS_CACHE_TTL_MS);
+
+/**
+ * performMeasurement виконується на кожен /metr (гарячий шлях), тому весь
+ * список умов (включно з base) кешуємо разом і фільтруємо вже в памʼяті -
+ * два окремі запити (enabled non-base + findOne base) на кожен вимір того
+ * не варті.
+ */
+async function getAllConditions(): Promise<ConditionHydratedDocument[]> {
+  return conditionsCache.resolve(CONDITIONS_CACHE_KEY, () => ConditionModel.find({}));
+}
+
+/** Викликати після createCondition/updateCondition/deleteCondition, щоб зміни в адмінці застосувались миттєво, а не за TTL. */
+export function invalidateConditionsCache(): void {
+  conditionsCache.invalidate(CONDITIONS_CACHE_KEY);
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -63,10 +83,8 @@ export async function performMeasurement(
   const gameState = await ensureRoundInitialized();
   const activeTheme = getActiveTheme(gameState);
 
-  const conditionDocs = await ConditionModel.find({
-    is_enabled: true,
-    code: { $ne: BASE_CONDITION_CODE },
-  });
+  const allConditions = await getAllConditions();
+  const conditionDocs = allConditions.filter((c) => c.is_enabled && c.code !== BASE_CONDITION_CODE);
   const shuffledConditions = shuffle(conditionDocs);
 
   const userDto = mapUserDocumentToDto(user);
@@ -100,7 +118,7 @@ export async function performMeasurement(
   }
 
   if (!resolved) {
-    const baseCondition = await ConditionModel.findOne({ code: BASE_CONDITION_CODE });
+    const baseCondition = allConditions.find((c) => c.code === BASE_CONDITION_CODE) ?? null;
     if (!baseCondition) {
       throw new Error('Base condition is not seeded in the database');
     }
