@@ -29,11 +29,24 @@ export class CriticalModifier implements GrowthModifierHandler {
 
   async apply(context: GrowthModifierContext): Promise<GrowthModifierResult> {
     const { minDelta, maxDelta } = context.condition;
-    const isSuccess = Math.random() < 0.5;
 
-    const delta = isSuccess
-      ? Math.round(randomInRange(Math.max(0, maxDelta) / 2, maxDelta) * 100) / 100
-      : Math.round(randomInRange(minDelta, Math.min(0, minDelta) / 2) * 100) / 100;
+    // Адмін може виставити діапазон, який лежить цілком у плюсі (minDelta > 0)
+    // або цілком у мінусі (maxDelta < 0). Гілки success/fail рахуємо від цих
+    // безпечних меж, а не від сирих minDelta/maxDelta - інакше randomInRange
+    // отримує min > max і повертає число поза заявленим діапазоном.
+    const positiveCeiling = Math.max(maxDelta, 0);
+    const negativeFloor = Math.min(minDelta, 0);
+
+    if (positiveCeiling === 0 && negativeFloor === 0) {
+      return { delta: 0, message: 'Нічого не відбулось - діапазон умови нульовий.' };
+    }
+
+    const isSuccess = negativeFloor === 0 ? true : positiveCeiling === 0 ? false : Math.random() < 0.5;
+
+    const rawDelta = isSuccess
+      ? randomInRange(positiveCeiling / 2, positiveCeiling)
+      : randomInRange(negativeFloor, negativeFloor / 2);
+    const delta = Math.round(Math.min(maxDelta, Math.max(minDelta, rawDelta)) * 100) / 100;
 
     const message = isSuccess ? pickRandom(CRITICAL_SUCCESS_MESSAGES) : pickRandom(CRITICAL_FAIL_MESSAGES);
 
