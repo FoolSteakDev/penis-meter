@@ -5,6 +5,7 @@ import { getDuelWinStats } from '../../services/duel.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
 import { getExperienceRankLabel } from '../../utils/experience-rank.util';
+import { formatCm } from '../../utils/number.util';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
 
 export async function handleStatusCommand(ctx: Context): Promise<void> {
@@ -24,7 +25,7 @@ export async function handleStatusCommand(ctx: Context): Promise<void> {
     : `через ${formatRemainingCooldown(user.last_measurement_at)}`;
 
   const lines = [
-    `📊 Твій поточний результат: ${user.value} см (${getSizeTierLabel(user.value)})`,
+    `📊 Твій поточний результат: ${formatCm(user.value)} см (${getSizeTierLabel(user.value)})`,
     `⏳ Наступний вимір: ${cooldownStatus}`,
     `🧠 Ранг досвіду: ${getExperienceRankLabel(user.experience)} (${user.experience} exp)`,
   ];

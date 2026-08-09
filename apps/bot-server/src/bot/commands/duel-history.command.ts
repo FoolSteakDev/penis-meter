@@ -3,6 +3,7 @@ import { replyWithMenu } from '../keyboards/menu.keyboard';
 import type { DuelHistoryHydratedDocument } from '../../database/models/duel-history.model';
 import { getChatDuelHistory, getPersonalDuelHistory } from '../../services/duel.service';
 import { getUserByTelegramId } from '../../services/user.service';
+import { formatCm } from '../../utils/number.util';
 import { userLabel } from '../../utils/user-label.util';
 
 async function formatDuelLine(entry: DuelHistoryHydratedDocument): Promise<string> {
@@ -17,7 +18,7 @@ async function formatDuelLine(entry: DuelHistoryHydratedDocument): Promise<strin
       : entry.challenger_telegram_id;
   const loser = loserTelegramId === entry.target_telegram_id ? target : challenger;
 
-  return `⚔️ ${userLabel(challenger)} vs ${userLabel(target)} → 🏆 ${userLabel(winner)} забрав ${entry.delta} см у ${userLabel(loser)}`;
+  return `⚔️ ${userLabel(challenger)} vs ${userLabel(target)} → 🏆 ${userLabel(winner)} забрав ${formatCm(entry.delta)} см у ${userLabel(loser)}`;
 }
 
 export async function handleDuelHistoryCommand(ctx: Context): Promise<void> {

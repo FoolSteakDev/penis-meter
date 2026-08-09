@@ -3,6 +3,7 @@ import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { ConcurrentMeasurementError, performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
+import { formatCm, formatCmSigned } from '../../utils/number.util';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
 
 export async function handleMetrCommand(ctx: Context): Promise<void> {
@@ -40,17 +41,16 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
     throw error;
   }
 
-  const deltaSign = outcome.delta >= 0 ? '+' : '';
   const lines = [
-    `📏 Було: ${outcome.previousValue} см`,
-    `${deltaSign}${outcome.delta} см`,
+    `📏 Було: ${formatCm(outcome.previousValue)} см`,
+    `${formatCmSigned(outcome.delta)} см`,
   ];
 
   if (outcome.conditionName && outcome.message) {
     lines.push(`🎲 ${outcome.conditionName}: ${outcome.message}`);
   }
 
-  lines.push(`📊 Стало: ${outcome.newValue} см (${getSizeTierLabel(outcome.newValue)})`);
+  lines.push(`📊 Стало: ${formatCm(outcome.newValue)} см (${getSizeTierLabel(outcome.newValue)})`);
 
   await replyWithMenu(ctx, lines.join('\n'));
 }

@@ -4,6 +4,7 @@ import { DEFAULT_STARTING_VALUE_CM, MAX_ANNOUNCED_CATCHUP_ROUNDS } from '../conf
 import { SeasonModel, type SeasonChatTop, type SeasonTopEntry } from '../database/models/season.model';
 import { UserModel, type UserHydratedDocument, type UserTitleCode } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
+import { formatCm } from '../utils/number.util';
 import {
   getCurrentRoundNumber,
   getSeasonBounds,
@@ -77,14 +78,14 @@ async function announceRoundSummary(
 
     const lines = [`📊 Підсумки раунду ${endedRoundNumber}:`];
     if (mvp && mvp.round_growth > 0) {
-      lines.push(`🏆 MVP тижня: ${userLabel(mvp)} (+${mvp.round_growth} см за тиждень)`);
+      lines.push(`🏆 MVP тижня: ${userLabel(mvp)} (+${formatCm(mvp.round_growth)} см за тиждень)`);
     }
     if (biggestJump && (biggestJump.round_best_delta ?? 0) > 0) {
       const jump = biggestJump.round_best_delta as number;
-      lines.push(`⚡ Найбільший стрибок: ${userLabel(biggestJump)} (+${jump} см за один вимір)`);
+      lines.push(`⚡ Найбільший стрибок: ${userLabel(biggestJump)} (+${formatCm(jump)} см за один вимір)`);
     }
     if (unlucky && unlucky.round_growth < 0 && unlucky !== mvp) {
-      lines.push(`💀 Невдаха тижня: ${userLabel(unlucky)} (${unlucky.round_growth} см за тиждень)`);
+      lines.push(`💀 Невдаха тижня: ${userLabel(unlucky)} (${formatCm(unlucky.round_growth)} см за тиждень)`);
     }
 
     if (lines.length > 1) {
@@ -109,14 +110,14 @@ async function announceWeeklyQuests(
     if (!user) continue;
     for (const chatId of user.chats) {
       const lines = byChat.get(chatId) ?? [];
-      lines.push(`📈 ${award.label}: ${award.threshold}+ вимірів за тиждень → +${award.rewardCm} см!`);
+      lines.push(`📈 ${award.label}: ${award.threshold}+ вимірів за тиждень → +${formatCm(award.rewardCm)} см!`);
       byChat.set(chatId, lines);
     }
   }
 
   for (const award of climberAwards) {
     const lines = byChat.get(award.chatId) ?? [];
-    lines.push(`🚀 ${award.label} увірвався в топ-3 чату цього тижня → +${award.rewardCm} см!`);
+    lines.push(`🚀 ${award.label} увірвався в топ-3 чату цього тижня → +${formatCm(award.rewardCm)} см!`);
     byChat.set(award.chatId, lines);
   }
 
@@ -183,8 +184,8 @@ async function announceSeasonSummary(
       await sendMessageSafely(
         bot,
         chatId,
-        `🏆 Сезон ${endedSeasonNumber} завершено!\nЧемпіон цього чату: ${userLabel(top[0])} (+${top[0].growth} см за сезон)\nГлобальний чемпіон: ${
-          topGlobal[0] ? `${userLabel(topGlobal[0])} (+${topGlobal[0].growth} см)` : '—'
+        `🏆 Сезон ${endedSeasonNumber} завершено!\nЧемпіон цього чату: ${userLabel(top[0])} (+${formatCm(top[0].growth)} см за сезон)\nГлобальний чемпіон: ${
+          topGlobal[0] ? `${userLabel(topGlobal[0])} (+${formatCm(topGlobal[0].growth)} см)` : '—'
         }`,
         announce,
       );

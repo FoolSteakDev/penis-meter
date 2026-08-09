@@ -28,6 +28,7 @@ import { formatKyivTime } from '../../utils/date.util';
 import { userLabel } from '../../utils/user-label.util';
 import { hasReliableMention, mentionHtml } from '../utils/mention.util';
 import { safeDeleteMessages } from '../utils/message-cleanup.util';
+import { formatCm } from '../../utils/number.util';
 
 /**
  * Скільки разів гравець невдало ввів ставку для конкретної чернетки -
@@ -76,7 +77,7 @@ async function buildOpponentPickerView(
 
   const buttons: InlineKeyboardButton.CallbackButton[] = pageItems.map((opponent) =>
     Markup.button.callback(
-      `${userLabel(opponent)} · ${opponent.value} см`,
+      `${userLabel(opponent)} · ${formatCm(opponent.value)} см`,
       `d:pick:${challengerTelegramId}:${opponent.telegram_id}`,
     ),
   );
@@ -117,7 +118,7 @@ async function renderStakeStep(
   ]);
 
   await ctx.editMessageText(
-    `⚔️ Опонент: ${userLabel(target)}. Обери ставку (від ${bounds.min} до ${bounds.max} см):`,
+    `⚔️ Опонент: ${userLabel(target)}. Обери ставку (від ${formatCm(bounds.min)} до ${formatCm(bounds.max)} см):`,
     Markup.inlineKeyboard([
       [Markup.button.callback('🎲 Авто', `d:auto:${draftId}`), Markup.button.callback('✍️ Своя', `d:cust:${draftId}`)],
       [Markup.button.callback('◀️ Назад', `d:back:${draftId}`)],
@@ -140,7 +141,8 @@ async function sendChallengeInviteMessage(
   }
 
   const deadline = formatKyivTime(finalized.expires_at);
-  const text = `⚔️ ${mentionHtml(challenger)} викликає на дуель ${mentionHtml(target)}!\n💰 Ставка: ${finalized.stake} см\n⏳ Відповісти можна до ${deadline} за Києвом`;
+  // finalized завжди пройшов finalizeChallenge, тож stake тут вже не null (тип number | null - лише для draft-стадії).
+  const text = `⚔️ ${mentionHtml(challenger)} викликає на дуель ${mentionHtml(target)}!\n💰 Ставка: ${formatCm(finalized.stake as number)} см\n⏳ Відповісти можна до ${deadline} за Києвом`;
 
   const sent = await telegram.sendMessage(chatId, text, {
     parse_mode: 'HTML',
@@ -368,7 +370,7 @@ export async function handleDuelCustomStakeAction(ctx: Context): Promise<void> {
     // решта чату його не побачить.
     const prompt = await ctx.telegram.sendMessage(
       chat.id,
-      `✍️ ${mentionHtml(challenger)}, введи ставку в см (від ${bounds.min} до ${bounds.max}):`,
+      `✍️ ${mentionHtml(challenger)}, введи ставку в см (від ${formatCm(bounds.min)} до ${formatCm(bounds.max)}):`,
       { parse_mode: 'HTML', reply_markup: { force_reply: true, selective: true } },
     );
     await recordStakePrompt(draftId, prompt.message_id);
@@ -430,7 +432,7 @@ export async function handleDuelStakeReply(ctx: Context, next: () => Promise<voi
       return;
     }
 
-    const rangeText = bounds ? `від ${bounds.min} до ${bounds.max}` : 'у допустимих межах';
+    const rangeText = bounds ? `від ${formatCm(bounds.min)} до ${formatCm(bounds.max)}` : 'у допустимих межах';
     const warn = await ctx.reply(`⚠️ Введи число ${rangeText} см (спроба ${attempts}/${DUEL_STAKE_INPUT_MAX_ATTEMPTS}).`);
     flowScratchMessages.set(draft.id, [...(flowScratchMessages.get(draft.id) ?? []), warn.message_id, message.message_id]);
     return;
@@ -485,12 +487,12 @@ export async function handleDuelAcceptAction(ctx: Context): Promise<void> {
       userLabelByTelegramId(result.loserTelegramId),
     ]);
 
-    const questNote = result.questReward ? `\n🎯 Квест виконано! Бонус: +${result.questReward} см` : '';
+    const questNote = result.questReward ? `\n🎯 Квест виконано! Бонус: +${formatCm(result.questReward)} см` : '';
     const reducedNote = result.stakeReduced
-      ? ` (ставку зменшено до ${result.amount} см - у програвшого не вистачило)`
+      ? ` (ставку зменшено до ${formatCm(result.amount)} см - у програвшого не вистачило)`
       : '';
     await ctx.editMessageText(
-      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${result.amount} см у ${loserLabel}!${reducedNote}${questNote}`,
+      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${formatCm(result.amount)} см у ${loserLabel}!${reducedNote}${questNote}`,
     );
     await ctx.answerCbQuery();
   } catch (error) {

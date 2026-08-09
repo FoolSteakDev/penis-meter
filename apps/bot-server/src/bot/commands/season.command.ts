@@ -2,6 +2,7 @@ import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { SEASON_START_DATE } from '../../config/constants';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
+import { formatCmSigned } from '../../utils/number.util';
 import { getCurrentRoundInfo, getDaysUntil, getSeasonBounds } from '../../utils/season-round.util';
 
 export async function handleSeasonCommand(ctx: Context): Promise<void> {
@@ -27,11 +28,10 @@ export async function handleSeasonCommand(ctx: Context): Promise<void> {
   const daysLeft = getDaysUntil(seasonBounds.endsAt);
   const globalRank = await getGrowthRank('season_growth', user.season_growth);
 
-  const growthSign = user.season_growth >= 0 ? '+' : '';
   const lines = [
     `🗓️ Сезон ${info.seasonNumber}, раунд ${info.roundInSeason}/4`,
     `⏳ До кінця сезону: ${daysLeft} дн.`,
-    `📈 Твій приріст за сезон: ${growthSign}${user.season_growth} см`,
+    `📈 Твій приріст за сезон: ${formatCmSigned(user.season_growth)} см`,
     `🌍 Місце в глобальному топі сезону: ${globalRank}`,
   ];
 

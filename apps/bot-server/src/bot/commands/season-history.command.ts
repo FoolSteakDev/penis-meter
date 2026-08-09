@@ -1,6 +1,7 @@
 import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { SeasonModel } from '../../database/models/season.model';
+import { formatCm } from '../../utils/number.util';
 import { userLabel } from '../../utils/user-label.util';
 
 const HISTORY_LIMIT = 10;
@@ -20,10 +21,10 @@ export async function handleSeasonHistoryCommand(ctx: Context): Promise<void> {
     const chatChampion = chatTop?.top[0];
 
     let line = `Сезон ${season.season_number}: 🌍 ${
-      globalChampion ? `${userLabel(globalChampion)} (+${globalChampion.growth} см)` : '—'
+      globalChampion ? `${userLabel(globalChampion)} (+${formatCm(globalChampion.growth)} см)` : '—'
     }`;
     if (chatId !== null) {
-      line += ` · 💬 ${chatChampion ? `${userLabel(chatChampion)} (+${chatChampion.growth} см)` : '—'}`;
+      line += ` · 💬 ${chatChampion ? `${userLabel(chatChampion)} (+${formatCm(chatChampion.growth)} см)` : '—'}`;
     }
     return line;
   });
