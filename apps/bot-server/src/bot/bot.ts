@@ -1,5 +1,5 @@
 import { Telegraf } from 'telegraf';
-import { envConfig } from '../config/env.config';
+import { envConfig, requireBotToken } from '../config/env.config';
 import { recordChatMessage } from '../services/chat-activity.service';
 import { handleAdminCommand } from './commands/admin.command';
 import { handleDuelHistoryCommand, handleDuelHistoryMeAction } from './commands/duel-history.command';
@@ -46,7 +46,7 @@ const BOT_COMMANDS = [
 ];
 
 export function createBot(): Telegraf {
-  const bot = new Telegraf(envConfig.botToken);
+  const bot = new Telegraf(requireBotToken());
 
   bot.use((ctx, next) => {
     // Лише 'message' - інакше callback_query (натискання кнопок дуелі тощо)

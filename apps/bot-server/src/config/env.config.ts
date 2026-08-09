@@ -11,6 +11,15 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * BOT_TOKEN ліниво, а не на рівні модуля - інакше npm run dev:apionly
+ * (тільки API, без бота) неможливо запустити без токена. Викликати лише
+ * там, де бот дійсно стартує (bot/bot.ts::createBot).
+ */
+export function requireBotToken(): string {
+  return requireEnv('BOT_TOKEN');
+}
+
 // ADMIN_CORS_ORIGIN може містити кілька origin'ів через кому (напр. локальний
 // dev-хост + продакшн-домен адмінки на Render) - парсимо в масив, бо `cors`
 // пакет очікує або один рядок, або масив, а не "склеєний" через кому рядок.
@@ -20,7 +29,7 @@ const adminCorsOrigins = (process.env.ADMIN_CORS_ORIGIN ?? '*')
   .filter(Boolean);
 
 export const envConfig = {
-  botToken: requireEnv('BOT_TOKEN'),
+  botToken: process.env.BOT_TOKEN ?? null,
   mongoUri: requireEnv('MONGO_URI'),
   port: Number(process.env.PORT ?? 3000),
   adminCorsOrigins,
