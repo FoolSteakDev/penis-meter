@@ -1,5 +1,6 @@
 import type { Dayjs } from 'dayjs';
 import { nowUtc } from '../utils/date.util';
+import { fetchJson } from '../utils/http.util';
 
 export interface UsdRateChange {
   currentRate: number;
@@ -7,15 +8,20 @@ export interface UsdRateChange {
   changePercent: number;
 }
 
+const MAX_LOOKBACK_DAYS = 3;
+
 async function fetchUsdRateForDate(date: Dayjs): Promise<number | null> {
   const dateParam = date.format('YYYYMMDD');
   const url = `https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&date=${dateParam}&json`;
-  const response = await fetch(url);
-  if (!response.ok) {
+  try {
+    const data = await fetchJson<Array<{ rate: number }>>(url);
+    return data[0]?.rate ?? null;
+  } catch {
+    // Вихідний/святковий день без курсу і мережевий/таймаут-збій трактуємо
+    // однаково - як "нема даних на цю дату", лічильник довкола просто пробує
+    // на день раніше.
     return null;
   }
-  const data = (await response.json()) as Array<{ rate: number }>;
-  return data[0]?.rate ?? null;
 }
 
 async function fetchMostRecentUsdRate(startDate: Dayjs, maxLookbackDays: number): Promise<{ rate: number; date: Dayjs } | null> {
@@ -31,12 +37,20 @@ async function fetchMostRecentUsdRate(startDate: Dayjs, maxLookbackDays: number)
 }
 
 export async function getUsdRateChange(): Promise<UsdRateChange> {
-  const current = await fetchMostRecentUsdRate(nowUtc(), 5);
+  // current і previous шукаємо паралельно (від "сьогодні" і від "вчора"), а
+  // не послідовно одне за одним - у гіршому разі 2×MAX_LOOKBACK_DAYS
+  // запитів виконуються одночасно, а не до 2×5 послідовних. Компроміс: якщо
+  // і сьогодні, і вчора курс не публікувався (рідкісний збіг вихідних),
+  // previous і current можуть зійтись на одній даті - тоді просто отримаємо
+  // changePercent: 0 замість помилки.
+  const [current, previous] = await Promise.all([
+    fetchMostRecentUsdRate(nowUtc(), MAX_LOOKBACK_DAYS),
+    fetchMostRecentUsdRate(nowUtc().subtract(1, 'day'), MAX_LOOKBACK_DAYS),
+  ]);
+
   if (!current) {
     throw new Error('Could not fetch current USD/UAH rate from NBU');
   }
-
-  const previous = await fetchMostRecentUsdRate(current.date.subtract(1, 'day'), 5);
   if (!previous) {
     throw new Error('Could not fetch previous USD/UAH rate from NBU');
   }

@@ -1,4 +1,5 @@
 import citiesData from '../data/cities.json';
+import { fetchJson } from '../utils/http.util';
 
 export interface City {
   name: string;
@@ -42,13 +43,9 @@ export function pickRandomCity(): City {
 
 export async function fetchCityWeather(city: City): Promise<CityWeather> {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,precipitation,weather_code`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Open-Meteo request failed with status ${response.status}`);
-  }
-  const data = (await response.json()) as {
+  const data = await fetchJson<{
     current: { temperature_2m: number; weather_code: number };
-  };
+  }>(url);
 
   return {
     city,

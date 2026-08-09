@@ -1,3 +1,5 @@
+import { fetchJson } from '../utils/http.util';
+
 export interface BtcPriceChange {
   currentPrice: number;
   previousPrice: number;
@@ -8,12 +10,7 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export async function getBtcHourlyChange(): Promise<BtcPriceChange> {
   const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1';
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`CoinGecko request failed with status ${response.status}`);
-  }
-
-  const data = (await response.json()) as { prices: [number, number][] };
+  const data = await fetchJson<{ prices: [number, number][] }>(url);
   const prices = data.prices;
   if (!prices || prices.length < 2) {
     throw new Error('Not enough BTC price data points from CoinGecko');
