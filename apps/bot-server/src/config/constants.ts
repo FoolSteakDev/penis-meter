@@ -54,3 +54,6 @@ export const INDIVIDUAL_QUEST_CHANCE = 0.4;
 
 /** Скільки останніх дуелей показувати в /duel_history та в особистій історії з /status. */
 export const DUEL_HISTORY_LIMIT = 10;
+
+/** Скільки живе чернетка виклику між вибором опонента і вибором ставки. */
+export const DUEL_DRAFT_TTL_MINUTES = 10;

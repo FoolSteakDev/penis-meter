@@ -1,4 +1,5 @@
-import { DUEL_HISTORY_LIMIT } from '../config/constants';
+import type { Telegraf } from 'telegraf';
+import { DUEL_DRAFT_TTL_MINUTES, DUEL_HISTORY_LIMIT } from '../config/constants';
 import { DuelChallengeModel, type DuelChallengeHydratedDocument } from '../database/models/duel-challenge.model';
 import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/models/duel-history.model';
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
@@ -263,4 +264,43 @@ export async function getDuelWinStats(telegramId: number): Promise<DuelWinStats>
     DuelHistoryModel.countDocuments({ winner_telegram_id: telegramId }),
   ]);
   return { wins, total };
+}
+
+/**
+ * Крон-джоба (bot/scheduler.ts): 1) прибирає чернетки, в яких зависли на
+ * виборі ставки довше DUEL_DRAFT_TTL_MINUTES; 2) протерміновує pending-
+ * виклики, expires_at яких минув, і редагує повідомлення в чаті, щоб живі
+ * кнопки "Прийняти/Відхилити" там не лишались назавжди (див. 1.1 - чому
+ * expires_at сам по собі більше не TTL-індекс).
+ */
+export async function sweepExpiredChallenges(bot: Telegraf): Promise<void> {
+  const now = new Date();
+  const draftCutoff = new Date(now.getTime() - DUEL_DRAFT_TTL_MINUTES * 60 * 1000);
+
+  await DuelChallengeModel.deleteMany({ status: 'draft', created_at: { $lt: draftCutoff } });
+
+  const staleChallenges = await DuelChallengeModel.find({ status: 'pending', expires_at: { $lt: now } });
+  for (const challenge of staleChallenges) {
+    // Атомарно - паралельний accept/decline/cancel міг устигнути першим.
+    const expired = await DuelChallengeModel.findOneAndUpdate(
+      { _id: challenge._id, status: 'pending' },
+      { $set: { status: 'expired' } },
+      { new: true },
+    );
+    if (!expired || expired.invite_chat_id === null || expired.invite_message_id === null) {
+      continue;
+    }
+
+    try {
+      await bot.telegram.editMessageText(
+        expired.invite_chat_id,
+        expired.invite_message_id,
+        undefined,
+        '⌛ Виклик протерміновано.',
+      );
+    } catch (error) {
+      // Повідомлення могли видалити вручну чи бот втратив права - не помилка sweeper'а.
+      console.error(`[duel] failed to edit expired challenge message ${expired.id}`, error);
+    }
+  }
 }
