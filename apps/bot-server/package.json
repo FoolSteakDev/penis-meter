@@ -10,7 +10,9 @@
     "start": "node dist/index.js",
     "seed": "tsx src/database/seed.ts",
     "backfill:rounds": "tsx src/database/backfill-legacy-rounds.ts",
-    "typecheck": "tsoa spec-and-routes && tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsoa spec-and-routes && tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -29,7 +31,9 @@
     "@types/node": "^22.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/swagger-ui-express": "^4.1.7",
+    "mongodb-memory-server": "^11.2.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
   }
 }
