@@ -47,6 +47,15 @@ export async function getActiveDuelQuest(telegramId: number, roundNumber: number
   });
 }
 
+/** Як getActiveDuelQuest, але без фільтра is_completed - для /round, щоб гравець бачив підтвердження щойно виконаного квесту, а не його зникнення. */
+export async function getDuelQuestForRound(telegramId: number, roundNumber: number): Promise<QuestHydratedDocument | null> {
+  return QuestModel.findOne({
+    telegram_id: telegramId,
+    round_number: roundNumber,
+    type: 'duel_wins',
+  });
+}
+
 /**
  * Викликається після перемоги в дуелі. Повертає нагороду (см), якщо квест
  * щойно виконано цим виміром, інакше null.
