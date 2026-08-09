@@ -41,7 +41,9 @@ export function createBot(): Telegraf {
   const bot = new Telegraf(envConfig.botToken);
 
   bot.use((ctx, next) => {
-    if (ctx.chat) {
+    // Лише 'message' - інакше callback_query (натискання кнопок дуелі тощо)
+    // теж накручує "активність чату" й спотворює статистику для chat_activity.
+    if (ctx.chat && ctx.updateType === 'message') {
       recordChatMessage(ctx.chat.id);
     }
     return next();

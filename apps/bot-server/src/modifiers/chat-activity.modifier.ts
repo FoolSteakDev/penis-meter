@@ -8,6 +8,10 @@ export class ChatActivityModifier implements GrowthModifierHandler {
   code = 'chat_activity';
 
   async isEligible(context: GrowthModifierContext): Promise<boolean> {
+    // Поріг практично недосяжний у групах, де в @BotFather не вимкнено privacy
+    // mode (/setprivacy -> Disable) - бот тоді бачить лише команди й реплаї на
+    // себе, а не всі повідомлення чату. Див. README, розділ "Налаштування в
+    // @BotFather". Гарячий шлях - тому нічого не логуємо тут.
     const threshold = Number(context.condition.config.messageThreshold ?? DEFAULT_MESSAGE_THRESHOLD);
     return getMessageCountLastHour(context.chatId) >= threshold;
   }

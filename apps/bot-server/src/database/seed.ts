@@ -94,7 +94,7 @@ const SEED_CONDITIONS: SeedCondition[] = [
     min_delta: 1,
     max_delta: 3,
     is_protected: false,
-    config: { messageThreshold: 20 },
+    config: { messageThreshold: 10 },
   },
 ];
 
