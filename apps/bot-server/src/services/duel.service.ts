@@ -1,5 +1,9 @@
 import type { Telegraf } from 'telegraf';
-import { DUEL_DRAFT_TTL_MINUTES, DUEL_HISTORY_LIMIT } from '../config/constants';
+import {
+  DUEL_DRAFT_TTL_MINUTES,
+  DUEL_HISTORY_LIMIT,
+  DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM,
+} from '../config/constants';
 import { DuelChallengeModel, type DuelChallengeHydratedDocument } from '../database/models/duel-challenge.model';
 import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/models/duel-history.model';
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
@@ -52,7 +56,12 @@ export async function listDuelOpponents(chatId: number, telegramId: number): Pro
   return UserModel.find({ chats: chatId, telegram_id: { $ne: telegramId } });
 }
 
-export async function createChallenge(
+/**
+ * Крок 1 -> крок 2: опонента обрано, ставка ще ні. Живе недовго
+ * (DUEL_DRAFT_TTL_MINUTES) - якщо гравець не дійде до d:auto/d:cust,
+ * sweeper приберає чернетку.
+ */
+export async function createDraftChallenge(
   chatId: number,
   challengerTelegramId: number,
   targetTelegramId: number,
@@ -71,8 +80,75 @@ export async function createChallenge(
     throw new Error('Цього учасника вже немає серед відомих боту в цьому чаті');
   }
 
-  const pendingCount = await DuelChallengeModel.countDocuments({
+  const expiresAt = new Date(Date.now() + DUEL_DRAFT_TTL_MINUTES * 60 * 1000);
+  return DuelChallengeModel.create({
+    chat_id: chatId,
     challenger_telegram_id: challengerTelegramId,
+    target_telegram_id: targetTelegramId,
+    status: 'draft',
+    stake: null,
+    expires_at: expiresAt,
+    cleanup_at: new Date(expiresAt.getTime() + CLEANUP_GRACE_MS),
+  });
+}
+
+export interface StakeBounds {
+  min: number;
+  max: number;
+}
+
+/**
+ * Ставка не може перевищувати поточний value жодного з учасників - інакше
+ * програвший піде в глибокий мінус, а це ламає і рейтинг, і size-тири.
+ * Нижня межа - 1 см: ставка «0» позбавляє дуель сенсу.
+ *
+ * Виняток: якщо в когось value <= 0, "не більше за value" дало б max <= 0,
+ * тобто дуель була б узагалі неможлива. За рішенням власника доступність
+ * дуелі важливіша - ставка в цьому випадку обмежена фіксованою стелею
+ * DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM, а не value гравців.
+ */
+export async function getStakeBounds(
+  challengerTelegramId: number,
+  targetTelegramId: number,
+): Promise<StakeBounds> {
+  const [challenger, target] = await Promise.all([
+    UserModel.findOne({ telegram_id: challengerTelegramId }),
+    UserModel.findOne({ telegram_id: targetTelegramId }),
+  ]);
+  if (!challenger || !target) {
+    throw new Error('Одного з учасників дуелі більше не знайдено');
+  }
+
+  if (challenger.value <= 0 || target.value <= 0) {
+    return { min: 1, max: DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM };
+  }
+
+  const ceiling = Math.floor(Math.min(challenger.value, target.value));
+  return { min: 1, max: Math.max(1, ceiling) };
+}
+
+/**
+ * Крок 2 -> 'pending': ставку обрано (авто чи власну). Тут, а не при
+ * створенні чернетки, перевіряємо ліміт/дублікат - чернетка сама слот не
+ * займає, займає лише реальний pending-виклик.
+ */
+export async function finalizeChallenge(
+  draftId: string,
+  requestingTelegramId: number,
+  stake: number,
+): Promise<DuelChallengeHydratedDocument> {
+  const draft = await DuelChallengeModel.findById(draftId);
+  if (!draft || draft.status !== 'draft') {
+    throw new Error('Ця чернетка виклику вже неактуальна - почни заново через /duel');
+  }
+  if (draft.challenger_telegram_id !== requestingTelegramId) {
+    throw new Error('Ця дія не для тебе');
+  }
+
+  const settings = await getDuelSettings();
+
+  const pendingCount = await DuelChallengeModel.countDocuments({
+    challenger_telegram_id: draft.challenger_telegram_id,
     status: 'pending',
     expires_at: { $gt: new Date() },
   });
@@ -84,9 +160,9 @@ export async function createChallenge(
 
   // Без цього гравець витратить усі слоти на одну людину й заспамить чат.
   const duplicate = await DuelChallengeModel.findOne({
-    challenger_telegram_id: challengerTelegramId,
-    target_telegram_id: targetTelegramId,
-    chat_id: chatId,
+    challenger_telegram_id: draft.challenger_telegram_id,
+    target_telegram_id: draft.target_telegram_id,
+    chat_id: draft.chat_id,
     status: 'pending',
     expires_at: { $gt: new Date() },
   });
@@ -95,14 +171,72 @@ export async function createChallenge(
   }
 
   const expiresAt = new Date(Date.now() + settings.challenge_ttl_minutes * 60 * 1000);
-  return DuelChallengeModel.create({
-    chat_id: chatId,
-    challenger_telegram_id: challengerTelegramId,
-    target_telegram_id: targetTelegramId,
-    status: 'pending',
-    expires_at: expiresAt,
-    cleanup_at: new Date(expiresAt.getTime() + CLEANUP_GRACE_MS),
+  const finalized = await DuelChallengeModel.findOneAndUpdate(
+    { _id: draftId, status: 'draft' },
+    {
+      $set: {
+        status: 'pending',
+        stake,
+        expires_at: expiresAt,
+        cleanup_at: new Date(expiresAt.getTime() + CLEANUP_GRACE_MS),
+      },
+    },
+    { new: true },
+  );
+  if (!finalized) {
+    throw new Error('Ця чернетка виклику вже неактуальна - почни заново через /duel');
+  }
+  return finalized;
+}
+
+/** Крок 2 (d:cust): зберегти id ForceReply-підказки, щоб зіставити текстову відповідь із чернеткою. */
+export async function recordStakePrompt(draftId: string, promptMessageId: number): Promise<void> {
+  await DuelChallengeModel.updateOne({ _id: draftId }, { $set: { stake_prompt_message_id: promptMessageId } });
+}
+
+/** Для bot.on(message('text')) - зіставити reply_to_message з активною чернеткою, яка чекає на ставку. */
+export async function findDraftByStakePrompt(promptMessageId: number): Promise<DuelChallengeHydratedDocument | null> {
+  return DuelChallengeModel.findOne({ status: 'draft', stake_prompt_message_id: promptMessageId });
+}
+
+/** d:back: гравець передумав - повертаємось до кроку 1, чернетка більше не потрібна. */
+export async function discardDraft(draftId: string, requestingTelegramId: number): Promise<void> {
+  await DuelChallengeModel.deleteOne({
+    _id: draftId,
+    status: 'draft',
+    challenger_telegram_id: requestingTelegramId,
   });
+}
+
+export async function getChallengeById(challengeId: string): Promise<DuelChallengeHydratedDocument | null> {
+  return DuelChallengeModel.findById(challengeId);
+}
+
+/** Авто-ставка (d:auto): в межах адмін-налаштованого діапазону дуелі, додатково обрізана межами за value (getStakeBounds). */
+export async function computeAutoStake(challengerTelegramId: number, targetTelegramId: number): Promise<number> {
+  const [settings, bounds] = await Promise.all([
+    getDuelSettings(),
+    getStakeBounds(challengerTelegramId, targetTelegramId),
+  ]);
+  const raw = randomInRange(Math.abs(settings.min_delta), Math.abs(settings.max_delta));
+  return roundCm(Math.min(Math.max(raw, bounds.min), bounds.max));
+}
+
+/**
+ * Парсер ручної ставки (d:cust -> текстова відповідь): підтримує кому як
+ * десятковий роздільник ('3,5' -> 3.5). null - невалідний ввід; перевірку
+ * meж [bounds.min, bounds.max] робить викликач окремо (тут не знає бounds).
+ */
+export function parseStakeInput(text: string): number | null {
+  const normalized = text.trim().replace(',', '.');
+  if (normalized === '') {
+    return null;
+  }
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return roundCm(value);
 }
 
 /** Викликати одразу після успішного надсилання повідомлення з викликом у чат. */

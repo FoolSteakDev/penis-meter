@@ -32,3 +32,16 @@ export function formatRemainingCooldown(lastMeasurementAt: Date | null): string 
   const minutes = diffMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
+
+// Дублюємо тут, а не імпортуємо apps/admin-panel/src/utils/kyiv-time.ts -
+// bot-server і admin-panel не діляться кодом крізь межу workspace.
+const kyivTimeFormatter = new Intl.DateTimeFormat('uk-UA', {
+  timeZone: 'Europe/Kyiv',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** HH:MM за києвським часом - для «Відповісти можна до {HH:MM}» у виклику на дуель. */
+export function formatKyivTime(date: Date): string {
+  return kyivTimeFormatter.format(date);
+}

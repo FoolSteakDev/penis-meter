@@ -1,14 +1,21 @@
 import { Telegraf } from 'telegraf';
+import { message } from 'telegraf/filters';
 import { envConfig, requireBotToken } from '../config/env.config';
 import { recordChatMessage } from '../services/chat-activity.service';
 import { handleAdminCommand } from './commands/admin.command';
 import { handleDuelHistoryCommand, handleDuelHistoryMeAction } from './commands/duel-history.command';
 import {
   handleDuelAcceptAction,
+  handleDuelAutoStakeAction,
+  handleDuelBackAction,
   handleDuelCancelAction,
   handleDuelCommand,
+  handleDuelCustomStakeAction,
   handleDuelDeclineAction,
-  handleDuelInviteAction,
+  handleDuelPageAction,
+  handleDuelPickAction,
+  handleDuelStakeReply,
+  handleOutdatedDuelAction,
 } from './commands/duel.command';
 import { handleGlobalRatingCommand } from './commands/global-rating.command';
 import {
@@ -85,13 +92,29 @@ export function createBot(): Telegraf {
   bot.command('duel_history', handleDuelHistoryCommand);
   bot.command('admin', handleAdminCommand);
 
+  // Має бути ДО registerMenuButtons - інакше bot.hears(...) для кнопок меню
+  // ловив би текст першим, і ForceReply-відповідь на ставку до них ніколи б
+  // не дійшла. handleDuelStakeReply сам робить ранній next(), коли
+  // повідомлення не є відповіддю на активну чернетку.
+  bot.on(message('text'), handleDuelStakeReply);
+
   registerMenuButtons(bot);
 
-  bot.action(/^duel:invite:\d+:\d+$/, handleDuelInviteAction);
-  bot.action(/^duel:accept:[a-f0-9]{24}$/, handleDuelAcceptAction);
-  bot.action(/^duel:decline:[a-f0-9]{24}$/, handleDuelDeclineAction);
+  bot.action(/^d:pick:\d+:\d+$/, handleDuelPickAction);
+  bot.action(/^d:page:\d+:\d+$/, handleDuelPageAction);
+  bot.action(/^d:auto:[a-f0-9]{24}$/, handleDuelAutoStakeAction);
+  bot.action(/^d:cust:[a-f0-9]{24}$/, handleDuelCustomStakeAction);
+  bot.action(/^d:back:[a-f0-9]{24}$/, handleDuelBackAction);
+  bot.action(/^d:acc:[a-f0-9]{24}$/, handleDuelAcceptAction);
+  bot.action(/^d:dec:[a-f0-9]{24}$/, handleDuelDeclineAction);
   bot.action(/^d:cancel:[a-f0-9]{24}$/, handleDuelCancelAction);
   bot.action('duel:history:me', handleDuelHistoryMeAction);
+
+  // Стара схема (до короткого d:* префікса) - лишаємо на один реліз, щоб
+  // кнопки у вже надісланих повідомленнях не мовчали.
+  bot.action(/^duel:invite:\d+:\d+$/, handleOutdatedDuelAction);
+  bot.action(/^duel:accept:[a-f0-9]{24}$/, handleOutdatedDuelAction);
+  bot.action(/^duel:decline:[a-f0-9]{24}$/, handleOutdatedDuelAction);
 
   bot.telegram.setMyCommands(BOT_COMMANDS).catch((error) => {
     console.error('[bot] failed to register command list', error);

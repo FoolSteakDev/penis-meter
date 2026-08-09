@@ -9,12 +9,14 @@ describe('resolveChallenge - concurrency (phase 1.3)', () => {
     await UserModel.create({ telegram_id: 1, first_name: 'Challenger', value: 10 });
     await UserModel.create({ telegram_id: 2, first_name: 'Target', value: 10 });
 
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     const challenge = await DuelChallengeModel.create({
       chat_id: 100,
       challenger_telegram_id: 1,
       target_telegram_id: 2,
       status: 'pending',
-      expires_at: new Date(Date.now() + 10 * 60 * 1000),
+      expires_at: expiresAt,
+      cleanup_at: new Date(expiresAt.getTime() + 7 * 24 * 60 * 60 * 1000),
     });
 
     const results = await Promise.allSettled([
