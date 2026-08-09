@@ -2,15 +2,7 @@ import type { Context } from 'telegraf';
 import type { DuelHistoryHydratedDocument } from '../../database/models/duel-history.model';
 import { getChatDuelHistory, getPersonalDuelHistory } from '../../services/duel.service';
 import { getUserByTelegramId } from '../../services/user.service';
-
-const UNKNOWN_PLAYER_LABEL = 'Гравець';
-
-function userLabel(u: { username: string | null; first_name: string } | null): string {
-  if (!u) {
-    return UNKNOWN_PLAYER_LABEL;
-  }
-  return u.username ?? u.first_name;
-}
+import { userLabel } from '../../utils/user-label.util';
 
 async function formatDuelLine(entry: DuelHistoryHydratedDocument): Promise<string> {
   const [challenger, target, winner] = await Promise.all([

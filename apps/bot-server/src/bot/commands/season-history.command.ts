@@ -1,11 +1,8 @@
 import type { Context } from 'telegraf';
 import { SeasonModel } from '../../database/models/season.model';
+import { userLabel } from '../../utils/user-label.util';
 
 const HISTORY_LIMIT = 10;
-
-function userLabel(u: { username: string | null; first_name: string }): string {
-  return u.username ?? u.first_name;
-}
 
 export async function handleSeasonHistoryCommand(ctx: Context): Promise<void> {
   const seasons = await SeasonModel.find().sort({ season_number: -1 }).limit(HISTORY_LIMIT);

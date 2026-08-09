@@ -9,16 +9,10 @@ import {
   resolveChallenge,
 } from '../../services/duel.service';
 import { findOrCreateUser, getUserByTelegramId } from '../../services/user.service';
-
-const UNKNOWN_PLAYER_LABEL = 'Гравець';
-
-function userLabel(u: { username: string | null | undefined; first_name: string }): string {
-  return u.username ?? u.first_name;
-}
+import { userLabel } from '../../utils/user-label.util';
 
 async function userLabelByTelegramId(telegramId: number): Promise<string> {
-  const user = await getUserByTelegramId(telegramId);
-  return user ? userLabel(user) : UNKNOWN_PLAYER_LABEL;
+  return userLabel(await getUserByTelegramId(telegramId));
 }
 
 function mentionHtml(telegramId: number, label: string): string {

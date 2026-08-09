@@ -10,15 +10,12 @@ import {
   getSeasonNumber,
   isLastRoundOfSeason,
 } from '../utils/season-round.util';
+import { userLabel } from '../utils/user-label.util';
 import { getOrCreateGameState } from './game-state.service';
 import { getAllChatIds, getActiveUsers, initializeRound } from './round-lifecycle.service';
 import { processClimberQuests, processMeasurementCountQuests } from './weekly-goals.service';
 
 const SEASON_TOP_SIZE = 10;
-
-function userLabel(u: { username: string | null; first_name: string }): string {
-  return u.username ?? u.first_name;
-}
 
 async function sendMessageSafely(bot: Telegraf, chatId: number, text: string, announce: boolean): Promise<void> {
   if (!announce) {
