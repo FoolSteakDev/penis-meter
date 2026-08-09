@@ -1,6 +1,6 @@
 import { Schema, model, type HydratedDocument } from 'mongoose';
 
-export type DuelChallengeStatus = 'draft' | 'pending' | 'accepted' | 'declined' | 'expired';
+export type DuelChallengeStatus = 'draft' | 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
 
 /**
  * Виклик на дуель. Життєвий цикл: 'draft' (крок 1 - обрано опонента, ставка
@@ -45,7 +45,7 @@ const duelChallengeSchema = new Schema<DuelChallengeDocument>(
     target_telegram_id: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['draft', 'pending', 'accepted', 'declined', 'expired'],
+      enum: ['draft', 'pending', 'accepted', 'declined', 'expired', 'cancelled'],
       required: true,
       default: 'pending',
     },

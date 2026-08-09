@@ -5,6 +5,7 @@ import { handleAdminCommand } from './commands/admin.command';
 import { handleDuelHistoryCommand, handleDuelHistoryMeAction } from './commands/duel-history.command';
 import {
   handleDuelAcceptAction,
+  handleDuelCancelAction,
   handleDuelCommand,
   handleDuelDeclineAction,
   handleDuelInviteAction,
@@ -89,6 +90,7 @@ export function createBot(): Telegraf {
   bot.action(/^duel:invite:\d+:\d+$/, handleDuelInviteAction);
   bot.action(/^duel:accept:[a-f0-9]{24}$/, handleDuelAcceptAction);
   bot.action(/^duel:decline:[a-f0-9]{24}$/, handleDuelDeclineAction);
+  bot.action(/^d:cancel:[a-f0-9]{24}$/, handleDuelCancelAction);
   bot.action('duel:history:me', handleDuelHistoryMeAction);
 
   bot.telegram.setMyCommands(BOT_COMMANDS).catch((error) => {

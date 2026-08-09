@@ -127,6 +127,32 @@ export async function deleteUndeliveredChallenge(challengeId: string): Promise<v
   await DuelChallengeModel.deleteOne({ _id: challengeId, invite_message_id: null });
 }
 
+/** Скасування власного pending-виклику - звільняє слот (ліміт max_pending_challenges). */
+export async function cancelChallenge(
+  challengeId: string,
+  requestingTelegramId: number,
+): Promise<DuelChallengeHydratedDocument> {
+  const challenge = await DuelChallengeModel.findById(challengeId);
+  if (!challenge || challenge.status !== 'pending') {
+    throw new Error('Цей виклик вже неактуальний');
+  }
+  if (challenge.challenger_telegram_id !== requestingTelegramId) {
+    throw new Error('Ця кнопка не для тебе');
+  }
+
+  // Атомарний перехід (не challenge.save()) - захист від перегону з sweeper'ом
+  // чи паралельним натисканням Прийняти/Відхилити на той самий виклик.
+  const cancelled = await DuelChallengeModel.findOneAndUpdate(
+    { _id: challengeId, status: 'pending' },
+    { $set: { status: 'cancelled' } },
+    { new: true },
+  );
+  if (!cancelled) {
+    throw new Error('Цей виклик вже неактуальний');
+  }
+  return cancelled;
+}
+
 async function getRespondablePendingChallenge(
   challengeId: string,
   respondingTelegramId: number,

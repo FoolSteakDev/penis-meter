@@ -2,6 +2,7 @@ import type { Context } from 'telegraf';
 import { Markup } from 'telegraf';
 import type { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram';
 import {
+  cancelChallenge,
   createChallenge,
   declineChallenge,
   deleteUndeliveredChallenge,
@@ -113,6 +114,7 @@ export async function handleDuelInviteAction(ctx: Context): Promise<void> {
             Markup.button.callback('✅ Прийняти', `duel:accept:${challenge.id}`),
             Markup.button.callback('❌ Відхилити', `duel:decline:${challenge.id}`),
           ],
+          [Markup.button.callback('🚫 Скасувати', `d:cancel:${challenge.id}`)],
         ]),
       },
     );
@@ -192,6 +194,29 @@ export async function handleDuelDeclineAction(ctx: Context): Promise<void> {
     await ctx.answerCbQuery();
   } catch (error) {
     await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось відхилити виклик', {
+      show_alert: true,
+    });
+  }
+}
+
+export async function handleDuelCancelAction(ctx: Context): Promise<void> {
+  const data = getCallbackData(ctx);
+  const from = ctx.from;
+  if (!data || !from) {
+    return;
+  }
+
+  const match = /^d:cancel:([a-f0-9]{24})$/.exec(data);
+  if (!match) {
+    return;
+  }
+
+  try {
+    await cancelChallenge(match[1], from.id);
+    await ctx.editMessageText('🚫 Виклик скасовано.');
+    await ctx.answerCbQuery();
+  } catch (error) {
+    await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось скасувати виклик', {
       show_alert: true,
     });
   }
