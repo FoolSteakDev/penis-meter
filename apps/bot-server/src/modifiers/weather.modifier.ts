@@ -1,5 +1,6 @@
 import { fetchCityWeather, pickRandomCity, type CityWeather, type WeatherCategory } from '../services/weather.service';
 import { rollBaseDelta } from '../utils/delta-roll.util';
+import { roundCm } from '../utils/number.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 const CATEGORY_LABELS: Record<WeatherCategory, string> = {
@@ -36,7 +37,7 @@ function adjustDeltaForWeather(baseDelta: number, weather: CityWeather, minDelta
 
   delta = Math.min(maxDelta, Math.max(minDelta, delta));
 
-  return Math.round(delta * 100) / 100;
+  return roundCm(delta);
 }
 
 function buildFlavorText(weather: CityWeather, delta: number): string {

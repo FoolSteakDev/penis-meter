@@ -3,6 +3,7 @@ import {
   type UsdRateChange,
 } from "../services/currency.service";
 import { rollBaseDelta } from "../utils/delta-roll.util";
+import { roundCm } from "../utils/number.util";
 import type {
   GrowthModifierContext,
   GrowthModifierHandler,
@@ -30,7 +31,7 @@ function adjustDeltaForCurrency(
 
   delta = Math.min(maxDelta, Math.max(minDelta, delta));
 
-  return Math.round(delta * 100) / 100;
+  return roundCm(delta);
 }
 
 function buildFlavorText(rateChange: UsdRateChange, delta: number): string {

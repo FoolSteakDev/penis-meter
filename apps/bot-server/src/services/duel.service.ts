@@ -4,6 +4,7 @@ import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import { registerDuelWin } from './quest.service';
+import { roundCm } from '../utils/number.util';
 import { getCurrentRoundNumber } from '../utils/season-round.util';
 
 export interface DuelResolution {
@@ -131,7 +132,7 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   }
 
   const settings = await getDuelSettings();
-  const amount = Math.round(randomInRange(Math.abs(settings.min_delta), Math.abs(settings.max_delta)) * 100) / 100;
+  const amount = roundCm(randomInRange(Math.abs(settings.min_delta), Math.abs(settings.max_delta)));
 
   const challengerWins = Math.random() < 0.5;
   const winner = challengerWins ? challenger : target;

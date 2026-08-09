@@ -1,4 +1,5 @@
 import type { DeltaMode } from '../database/models/condition.model';
+import { roundCm } from './number.util';
 
 export interface DeltaRollable {
   deltaMode: DeltaMode;
@@ -21,7 +22,7 @@ function randomInRange(min: number, max: number): number {
 export function rollBaseDelta(condition: DeltaRollable): number {
   if (condition.deltaMode === 'fixed_list' && condition.fixedValues.length > 0) {
     const value = condition.fixedValues[Math.floor(Math.random() * condition.fixedValues.length)];
-    return Math.round(value * 100) / 100;
+    return roundCm(value);
   }
-  return Math.round(randomInRange(condition.minDelta, condition.maxDelta) * 100) / 100;
+  return roundCm(randomInRange(condition.minDelta, condition.maxDelta));
 }

@@ -1,5 +1,6 @@
 import { getCurrentMoonPhase } from '../services/moon-phase.service';
 import { rollBaseDelta } from '../utils/delta-roll.util';
+import { roundCm } from '../utils/number.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 const FULL_MOON_THRESHOLD = 0.85;
@@ -25,7 +26,7 @@ export class MoonPhaseModifier implements GrowthModifierHandler {
     // версії, але з правильним знаком.
     const bonus = influence * Math.abs(influence) * swing * 0.5;
     const rawDelta = baseDelta + bonus;
-    const delta = Math.round(Math.min(maxDelta, Math.max(minDelta, rawDelta)) * 100) / 100;
+    const delta = roundCm(Math.min(maxDelta, Math.max(minDelta, rawDelta)));
 
     const message =
       moon.fullness >= FULL_MOON_THRESHOLD

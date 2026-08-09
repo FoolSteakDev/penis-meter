@@ -17,6 +17,7 @@ import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
 import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
 import { ensureRoundInitialized } from './round-lifecycle.service';
 import { nowUtc } from '../utils/date.util';
+import { roundCm } from '../utils/number.util';
 import { createTtlCache } from '../utils/ttl-cache.util';
 
 /** Паралельний вимір того самого юзера вже пройшов CAS-перевірку раніше за цей. */
@@ -146,7 +147,7 @@ export async function performMeasurement(
 
   const previousValue = user.value;
   const delta = resolved.result.delta;
-  const newValue = Math.round((previousValue + delta) * 100) / 100;
+  const newValue = roundCm(previousValue + delta);
 
   // Streak/досвід рахуємо ДО того, як перезапишемо last_measurement_at.
   const previousMeasurementAt = user.last_measurement_at;

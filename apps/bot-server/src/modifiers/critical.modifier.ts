@@ -1,3 +1,4 @@
+import { roundCm } from '../utils/number.util';
 import type { GrowthModifierContext, GrowthModifierHandler, GrowthModifierResult } from './growth-modifier.types';
 
 function randomInRange(min: number, max: number): number {
@@ -46,7 +47,7 @@ export class CriticalModifier implements GrowthModifierHandler {
     const rawDelta = isSuccess
       ? randomInRange(positiveCeiling / 2, positiveCeiling)
       : randomInRange(negativeFloor, negativeFloor / 2);
-    const delta = Math.round(Math.min(maxDelta, Math.max(minDelta, rawDelta)) * 100) / 100;
+    const delta = roundCm(Math.min(maxDelta, Math.max(minDelta, rawDelta)));
 
     const message = isSuccess ? pickRandom(CRITICAL_SUCCESS_MESSAGES) : pickRandom(CRITICAL_FAIL_MESSAGES);
 
