@@ -22,10 +22,18 @@ import { handleSeasonCommand } from './commands/season.command';
 import { handleSeasonHistoryCommand } from './commands/season-history.command';
 import { handleStatusCommand } from './commands/status.command';
 
+/** «2 год», «1.5 год», «30 хв» - враховує дробові значення MEASUREMENT_COOLDOWN_HOURS (напр. 0.05 для тестів). */
+function formatCooldownLabel(hours: number): string {
+  if (hours < 1) {
+    return `${Math.round(hours * 60)} хв`;
+  }
+  return `${hours} год`;
+}
+
 const BOT_COMMANDS = [
   { command: 'menu', description: 'Показати меню з кнопками' },
   { command: 'hide_menu', description: 'Сховати меню з кнопками' },
-  { command: 'metr', description: 'Виміряти (раз на 2 години)' },
+  { command: 'metr', description: `Виміряти (раз на ${formatCooldownLabel(envConfig.measurementCooldownHours)})` },
   { command: 'status', description: 'Поточний результат і час до наступного виміру' },
   { command: 'rating', description: 'Топ-10 у цьому чаті' },
   { command: 'global_rating', description: 'Топ-10 серед усіх користувачів' },
