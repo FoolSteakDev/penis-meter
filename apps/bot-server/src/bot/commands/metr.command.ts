@@ -1,5 +1,5 @@
 import type { Context } from 'telegraf';
-import { performMeasurement } from '../../services/measurement.service';
+import { ConcurrentMeasurementError, performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
@@ -28,7 +28,16 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
     return;
   }
 
-  const outcome = await performMeasurement(user, chat.id);
+  let outcome;
+  try {
+    outcome = await performMeasurement(user, chat.id);
+  } catch (error) {
+    if (error instanceof ConcurrentMeasurementError) {
+      await ctx.reply('⏳ Вимір уже виконується, спробуй за секунду.');
+      return;
+    }
+    throw error;
+  }
 
   const deltaSign = outcome.delta >= 0 ? '+' : '';
   const lines = [

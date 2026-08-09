@@ -21,16 +21,18 @@ function randomInRange(min: number, max: number): number {
  * Дуель зачіпає обох учасників напряму (не через їхній власний /metr), тому
  * value/round_growth/season_growth/round_best_delta потрібно оновити тут
  * вручну для КОЖНОГО з двох - інакше підсумки раунду/сезону не побачать
- * цього приросту чи втрати.
+ * цього приросту чи втрати. Атомарний $inc/$max замість read-modify-save -
+ * учасник дуелі міг у ту ж мить зробити свій /metr, і save() перезаписав би
+ * весь документ поверх нього.
  */
 async function applyDuelDelta(user: UserHydratedDocument, delta: number): Promise<void> {
-  user.value = Math.round((user.value + delta) * 100) / 100;
-  user.round_growth = Math.round((user.round_growth + delta) * 100) / 100;
-  user.season_growth = Math.round((user.season_growth + delta) * 100) / 100;
-  if (user.round_best_delta === null || delta > user.round_best_delta) {
-    user.round_best_delta = delta;
-  }
-  await user.save();
+  await UserModel.findOneAndUpdate(
+    { _id: user._id },
+    {
+      $inc: { value: delta, round_growth: delta, season_growth: delta },
+      $max: { round_best_delta: delta },
+    },
+  );
 }
 
 export async function getDuelSettings(): Promise<DuelSettingsHydratedDocument> {
@@ -103,11 +105,26 @@ async function getRespondablePendingChallenge(
 }
 
 export async function resolveChallenge(challengeId: string, respondingTelegramId: number): Promise<DuelResolution> {
-  const challenge = await getRespondablePendingChallenge(challengeId, respondingTelegramId);
+  // Атомарний перехід pending -> accepted, щоб подвійний клік "Прийняти" (або
+  // паралельний виклик resolveChallenge для того самого challengeId) не зіграв
+  // дуель двічі - другий виклик просто не знайде документ і впаде в throw.
+  const claimed = await DuelChallengeModel.findOneAndUpdate(
+    {
+      _id: challengeId,
+      status: 'pending',
+      target_telegram_id: respondingTelegramId,
+      expires_at: { $gt: new Date() },
+    },
+    { $set: { status: 'accepted' } },
+    { new: true },
+  );
+  if (!claimed) {
+    throw new Error('Цей виклик вже неактуальний');
+  }
 
   const [challenger, target] = await Promise.all([
-    UserModel.findOne({ telegram_id: challenge.challenger_telegram_id }),
-    UserModel.findOne({ telegram_id: challenge.target_telegram_id }),
+    UserModel.findOne({ telegram_id: claimed.challenger_telegram_id }),
+    UserModel.findOne({ telegram_id: claimed.target_telegram_id }),
   ]);
   if (!challenger || !target) {
     throw new Error('Одного з учасників дуелі більше не знайдено');
@@ -126,13 +143,10 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   await applyDuelDelta(winner, questReward ? amount + questReward : amount);
   await applyDuelDelta(loser, -amount);
 
-  challenge.status = 'accepted';
-  await challenge.save();
-
   await DuelHistoryModel.create({
-    chat_id: challenge.chat_id,
-    challenger_telegram_id: challenge.challenger_telegram_id,
-    target_telegram_id: challenge.target_telegram_id,
+    chat_id: claimed.chat_id,
+    challenger_telegram_id: claimed.challenger_telegram_id,
+    target_telegram_id: claimed.target_telegram_id,
     winner_telegram_id: winner.telegram_id,
     delta: amount,
   });

@@ -61,25 +61,27 @@ export async function registerDuelWin(
   roundNumber: number,
   questTargets: DuelQuestTarget[],
 ): Promise<number | null> {
-  const quest = await QuestModel.findOne({
-    telegram_id: telegramId,
-    round_number: roundNumber,
-    type: 'duel_wins',
-    is_completed: false,
-  });
-  if (!quest) {
+  // Атомарний $inc замість read-modify-save - два паралельні виграші того
+  // самого юзера не мають загубити один одного. Завершення квесту - окремий
+  // атомарний апдейт із фільтром is_completed: false, щоб при паралельному
+  // перегоні прогресу через ціль нагорода видалась рівно раз.
+  const incremented = await QuestModel.findOneAndUpdate(
+    { telegram_id: telegramId, round_number: roundNumber, type: 'duel_wins', is_completed: false },
+    { $inc: { progress: 1 } },
+    { new: true },
+  );
+  if (!incremented || incremented.progress < incremented.target) {
     return null;
   }
 
-  quest.progress += 1;
-  if (quest.progress >= quest.target) {
-    quest.is_completed = true;
-    const reward = questTargets.find((t) => t.target === quest.target)?.reward_cm ?? 0;
-    quest.reward_applied = reward > 0;
-    await quest.save();
-    return reward > 0 ? reward : null;
+  const reward = questTargets.find((t) => t.target === incremented.target)?.reward_cm ?? 0;
+  const completed = await QuestModel.findOneAndUpdate(
+    { _id: incremented._id, is_completed: false },
+    { $set: { is_completed: true, reward_applied: reward > 0 } },
+  );
+  if (!completed) {
+    return null;
   }
 
-  await quest.save();
-  return null;
+  return reward > 0 ? reward : null;
 }

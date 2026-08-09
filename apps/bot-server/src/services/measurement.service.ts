@@ -5,7 +5,7 @@ import {
   STREAK_GRACE_HOURS,
 } from '../config/constants';
 import { ConditionModel } from '../database/models/condition.model';
-import type { UserHydratedDocument } from '../database/models/user.model';
+import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import type { ThemeConditionOverride } from '../data/round-themes.data';
 import type { ConditionDto } from '../dto/condition.dto';
 import { envConfig } from '../config/env.config';
@@ -17,6 +17,14 @@ import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
 import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
 import { ensureRoundInitialized } from './round-lifecycle.service';
 import { nowUtc } from '../utils/date.util';
+
+/** Паралельний вимір того самого юзера вже пройшов CAS-перевірку раніше за цей. */
+export class ConcurrentMeasurementError extends Error {
+  constructor() {
+    super('Concurrent measurement detected');
+    this.name = 'ConcurrentMeasurementError';
+  }
+}
 
 export interface MeasurementOutcome {
   previousValue: number;
@@ -112,41 +120,57 @@ export async function performMeasurement(
   }
 
   const previousValue = user.value;
-  const rawNewValue = previousValue + resolved.result.delta;
-  const newValue = Math.round(rawNewValue * 100) / 100;
+  const delta = resolved.result.delta;
+  const newValue = Math.round((previousValue + delta) * 100) / 100;
 
   // Streak/досвід рахуємо ДО того, як перезапишемо last_measurement_at.
   const previousMeasurementAt = user.last_measurement_at;
+  let nextStreak: number;
   if (previousMeasurementAt === null) {
-    user.streak_current = 1;
+    nextStreak = 1;
   } else {
     const gapHours = nowUtc().diff(previousMeasurementAt, 'hour', true);
     const onTime = gapHours <= envConfig.measurementCooldownHours + STREAK_GRACE_HOURS;
-    user.streak_current = onTime ? user.streak_current + 1 : 1;
+    nextStreak = onTime ? user.streak_current + 1 : 1;
   }
-  if (user.streak_current > user.streak_best) {
-    user.streak_best = user.streak_current;
-  }
-  const experienceGain = BASE_EXPERIENCE_PER_MEASUREMENT + user.streak_current * EXPERIENCE_PER_STREAK_POINT;
-  user.experience = Math.round((user.experience + experienceGain) * 100) / 100;
+  const experienceGain = BASE_EXPERIENCE_PER_MEASUREMENT + nextStreak * EXPERIENCE_PER_STREAK_POINT;
 
-  user.value = newValue;
-  user.season_growth = Math.round((user.season_growth + resolved.result.delta) * 100) / 100;
-  user.round_growth = Math.round((user.round_growth + resolved.result.delta) * 100) / 100;
-  user.round_measurement_count += 1;
-  if (user.round_best_delta === null || resolved.result.delta > user.round_best_delta) {
-    user.round_best_delta = resolved.result.delta;
+  // Атомарний compare-and-swap: last_measurement_at у фільтрі одночасно
+  // перевіряє кулдаун (значення, з якого стартував саме цей вимір) і захищає
+  // від втрати даних при паралельних викликах performMeasurement/applyDuelDelta
+  // над тим самим юзером (save() перезаписує весь документ без версіювання).
+  // delta вже округлена в handler.apply() (rollBaseDelta/модифікатори), тому
+  // інкрементуємо season_growth/round_growth округленою величиною напряму,
+  // без окремого кроку нормалізації після.
+  const updated = await UserModel.findOneAndUpdate(
+    { _id: user._id, last_measurement_at: previousMeasurementAt },
+    {
+      $set: {
+        value: newValue,
+        last_measurement_at: nowUtc().toDate(),
+        streak_current: nextStreak,
+        streak_best: Math.max(user.streak_best, nextStreak),
+      },
+      $inc: {
+        season_growth: delta,
+        round_growth: delta,
+        round_measurement_count: 1,
+        experience: experienceGain,
+      },
+      $max: { round_best_delta: delta },
+      $addToSet: { chats: chatId },
+    },
+    { new: true },
+  );
+
+  if (!updated) {
+    throw new ConcurrentMeasurementError();
   }
-  user.last_measurement_at = nowUtc().toDate();
-  if (!user.chats.includes(chatId)) {
-    user.chats.push(chatId);
-  }
-  await user.save();
 
   return {
     previousValue,
     newValue,
-    delta: resolved.result.delta,
+    delta,
     conditionName: resolved.condition.code === BASE_CONDITION_CODE ? null : resolved.condition.name,
     message: resolved.result.message,
   };
