@@ -29,6 +29,8 @@ export interface DuelChallengeDocument {
   invite_message_id: number | null;
   /** id ForceReply-підказки "введи ставку" - щоб зіставити текстову відповідь із чернеткою. */
   stake_prompt_message_id: number | null;
+  /** id повідомлення кроку 1→2 (вибір опонента / вибір ставки) - щоб прибрати його після старту виклику. */
+  flow_message_id: number | null;
   expires_at: Date;
   /** Коли документ фізично видаляється (TTL-індекс) - expires_at + запас на дебаг. */
   cleanup_at: Date;
@@ -53,6 +55,7 @@ const duelChallengeSchema = new Schema<DuelChallengeDocument>(
     invite_chat_id: { type: Number, default: null },
     invite_message_id: { type: Number, default: null },
     stake_prompt_message_id: { type: Number, default: null },
+    flow_message_id: { type: Number, default: null },
     expires_at: { type: Date, required: true },
     cleanup_at: { type: Date, required: true },
   },

@@ -18,6 +18,7 @@ import {
   listDuelOpponents,
   parseStakeInput,
   recordChallengeInvite,
+  recordFlowMessage,
   recordStakePrompt,
   resolveChallenge,
   type StakeBounds,
@@ -26,6 +27,7 @@ import { findOrCreateUser, getUserByTelegramId } from '../../services/user.servi
 import { formatKyivTime } from '../../utils/date.util';
 import { userLabel } from '../../utils/user-label.util';
 import { hasReliableMention, mentionHtml } from '../utils/mention.util';
+import { safeDeleteMessages } from '../utils/message-cleanup.util';
 
 /**
  * Скільки разів гравець невдало ввів ставку для конкретної чернетки -
@@ -33,6 +35,9 @@ import { hasReliableMention, mentionHtml } from '../utils/mention.util';
  * живуть хвилини, рестарт процесу все одно скидає незавершений флоу.
  */
 const stakeInputAttempts = new Map<string, number>();
+
+/** draftId -> id службових повідомлень (⚠️-попередження тощо), які треба прибрати наприкінці флоу. */
+const flowScratchMessages = new Map<string, number[]>();
 
 async function userLabelByTelegramId(telegramId: number): Promise<string> {
   return userLabel(await getUserByTelegramId(telegramId));
@@ -226,6 +231,10 @@ export async function handleDuelPickAction(ctx: Context): Promise<void> {
 
   try {
     const draft = await createDraftChallenge(chat.id, challengerTelegramId, targetTelegramId);
+    const flowMessageId = ctx.callbackQuery?.message?.message_id;
+    if (flowMessageId) {
+      await recordFlowMessage(draft.id, flowMessageId);
+    }
     await renderStakeStep(ctx, draft.id, challengerTelegramId, targetTelegramId);
     await ctx.answerCbQuery();
   } catch (error) {
@@ -251,6 +260,7 @@ export async function handleDuelBackAction(ctx: Context): Promise<void> {
 
   await discardDraft(draftId, from.id);
   stakeInputAttempts.delete(draftId);
+  flowScratchMessages.delete(draftId);
 
   const view = await buildOpponentPickerView(chat.id, from.id, 0);
   if (!view) {
@@ -301,6 +311,11 @@ export async function handleDuelAutoStakeAction(ctx: Context): Promise<void> {
   try {
     const { target } = await sendChallengeInviteMessage(ctx.telegram, chat.id, finalized);
     stakeInputAttempts.delete(draftId);
+    await safeDeleteMessages(ctx.telegram, chat.id, [
+      draft.flow_message_id ?? ctx.callbackQuery?.message?.message_id,
+      ...(flowScratchMessages.get(draftId) ?? []),
+    ]);
+    flowScratchMessages.delete(draftId);
 
     if (target && !hasReliableMention(target)) {
       await ctx.answerCbQuery('Опонент без @username - сповіщення може не прийти, штовхни його в чаті', {
@@ -404,12 +419,20 @@ export async function handleDuelStakeReply(ctx: Context, next: () => Promise<voi
     if (attempts >= DUEL_STAKE_INPUT_MAX_ATTEMPTS) {
       await discardDraft(draft.id, from.id);
       stakeInputAttempts.delete(draft.id);
+      await safeDeleteMessages(ctx.telegram, chat.id, [
+        draft.flow_message_id,
+        replyToId,
+        message.message_id,
+        ...(flowScratchMessages.get(draft.id) ?? []),
+      ]);
+      flowScratchMessages.delete(draft.id);
       await ctx.reply('⚔️ Забагато невдалих спроб - виклик скасовано. Спробуй ще раз через /duel.');
       return;
     }
 
     const rangeText = bounds ? `від ${bounds.min} до ${bounds.max}` : 'у допустимих межах';
-    await ctx.reply(`⚠️ Введи число ${rangeText} см (спроба ${attempts}/${DUEL_STAKE_INPUT_MAX_ATTEMPTS}).`);
+    const warn = await ctx.reply(`⚠️ Введи число ${rangeText} см (спроба ${attempts}/${DUEL_STAKE_INPUT_MAX_ATTEMPTS}).`);
+    flowScratchMessages.set(draft.id, [...(flowScratchMessages.get(draft.id) ?? []), warn.message_id, message.message_id]);
     return;
   }
 
@@ -434,13 +457,13 @@ export async function handleDuelStakeReply(ctx: Context, next: () => Promise<voi
     return;
   }
 
-  // Прибираємо ForceReply-підказку й відповідь гравця, щоб не смітити чат.
-  try {
-    await ctx.telegram.deleteMessage(chat.id, replyToId);
-    await ctx.telegram.deleteMessage(chat.id, message.message_id);
-  } catch (error) {
-    console.error('[duel] failed to delete stake prompt/reply messages (bot may lack admin rights)', error);
-  }
+  await safeDeleteMessages(ctx.telegram, chat.id, [
+    draft.flow_message_id,
+    replyToId,
+    message.message_id,
+    ...(flowScratchMessages.get(draft.id) ?? []),
+  ]);
+  flowScratchMessages.delete(draft.id);
 }
 
 export async function handleDuelAcceptAction(ctx: Context): Promise<void> {

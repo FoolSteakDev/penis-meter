@@ -196,6 +196,11 @@ export async function recordStakePrompt(draftId: string, promptMessageId: number
   await DuelChallengeModel.updateOne({ _id: draftId }, { $set: { stake_prompt_message_id: promptMessageId } });
 }
 
+/** Крок 1→2: запам'ятати id повідомлення вибору ставки, щоб прибрати його після старту виклику. */
+export async function recordFlowMessage(draftId: string, messageId: number): Promise<void> {
+  await DuelChallengeModel.updateOne({ _id: draftId }, { $set: { flow_message_id: messageId } });
+}
+
 /** Для bot.on(message('text')) - зіставити reply_to_message з активною чернеткою, яка чекає на ставку. */
 export async function findDraftByStakePrompt(promptMessageId: number): Promise<DuelChallengeHydratedDocument | null> {
   return DuelChallengeModel.findOne({ status: 'draft', stake_prompt_message_id: promptMessageId });
