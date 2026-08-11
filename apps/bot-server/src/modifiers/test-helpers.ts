@@ -16,6 +16,8 @@ export const FAKE_USER: UserDto = {
   roundBestDelta: null,
   roundMeasurementCount: 0,
   titles: [],
+  mode: 'grow',
+  modeChangedAt: null,
   experience: 0,
   streakCurrent: 0,
   streakBest: 0,

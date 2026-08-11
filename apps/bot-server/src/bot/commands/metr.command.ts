@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
+import { withActor } from '../utils/actor.util';
 import { ConcurrentMeasurementError, performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
@@ -26,7 +27,7 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
       user.streak_current = 0;
       await user.save();
     }
-    await ctx.reply(`⏳ Наступний вимір буде доступний через ${remaining}.`);
+    await ctx.reply(withActor(ctx, `⏳ Наступний вимір буде доступний через ${remaining}.`));
     return;
   }
 
@@ -35,15 +36,21 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
     outcome = await performMeasurement(user, chat.id);
   } catch (error) {
     if (error instanceof ConcurrentMeasurementError) {
-      await ctx.reply('⏳ Вимір уже виконується, спробуй за секунду.');
+      await ctx.reply(withActor(ctx, '⏳ Вимір уже виконується, спробуй за секунду.'));
       return;
     }
     throw error;
   }
 
+  // Буровик читає "Було/Стало" в термінах глибини, а не висоти - емодзі й
+  // напрямок дельти підказують це, не чіпаючи самі тіри (size-tier.util.ts)
+  // чи текст критичних модифікаторів (свідомо, див. 3.7 плану).
+  const isDrill = user.mode === 'drill';
+  const depthHint = isDrill ? (outcome.delta < 0 ? '  ← глибше' : outcome.delta > 0 ? '  ← спливає' : '') : '';
+
   const lines = [
-    `📏 Було: ${formatCm(outcome.previousValue)} см`,
-    `${formatCmSigned(outcome.delta)} см`,
+    `${isDrill ? '🕳 Було' : '📏 Було'}: ${formatCm(outcome.previousValue)} см`,
+    `${formatCmSigned(outcome.delta)} см${depthHint}`,
   ];
 
   if (outcome.conditionName && outcome.message) {

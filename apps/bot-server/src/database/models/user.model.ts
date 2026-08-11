@@ -9,6 +9,8 @@ export interface UserWork {
 export type UserTitleCode = 'champion' | 'silver' | 'bronze' | 'top10';
 export type UserTitleScope = 'global' | 'chat';
 
+export type UserMode = 'grow' | 'drill';
+
 export interface UserTitle {
   season_number: number;
   rank: number;
@@ -29,11 +31,18 @@ export interface UserDocument {
   work: UserWork;
   season_growth: number;
   round_growth: number;
-  /** Найбільша одинична дельта в межах поточного раунду - для підсумку "найбільший стрибок". */
+  /** Найбільший ПРОГРЕС (не сира дельта) у бік власної мети в межах поточного
+   *  раунду - для підсумку "найбільший стрибок". Для 'grow' це найбільша
+   *  додатна дельта, для 'drill' - найбільша по модулю від'ємна (глибина). */
   round_best_delta: number | null;
   /** Кількість вимірів у поточному раунді - для квесту "N вимірів за тиждень". */
   round_measurement_count: number;
   titles: UserTitle[];
+  /** 'grow' - плюси ростять вгору (дефолт, поведінка до режиму drill).
+   *  'drill' - усі дельти дзеркаляться: delta * (-1). Критфейл для буровика - удача. */
+  mode: UserMode;
+  /** null = ніколи не перемикав. Для кулдауну MODE_SWITCH_COOLDOWN_HOURS. */
+  mode_changed_at: Date | null;
   /** Ранговий досвід - росте від активності (виміри, streak-бонус), не від value. */
   experience: number;
   /** Поточна серія "вчасних" вимірів підряд (без передчасних спроб і без запізнень). */
@@ -79,6 +88,8 @@ const userSchema = new Schema<UserDocument>(
     round_best_delta: { type: Number, default: null },
     round_measurement_count: { type: Number, required: true, default: 0 },
     titles: { type: [userTitleSchema], default: [] },
+    mode: { type: String, enum: ['grow', 'drill'], required: true, default: 'grow' },
+    mode_changed_at: { type: Date, default: null },
     experience: { type: Number, required: true, default: 0 },
     streak_current: { type: Number, required: true, default: 0 },
     streak_best: { type: Number, required: true, default: 0 },

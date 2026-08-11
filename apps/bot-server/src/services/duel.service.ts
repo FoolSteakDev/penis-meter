@@ -9,6 +9,8 @@ import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import { registerDuelWin } from './quest.service';
+import { challengerWinsCoinFlip } from '../utils/duel-coin.util';
+import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { getCurrentRoundNumber } from '../utils/season-round.util';
 
@@ -41,7 +43,8 @@ async function applyDuelDelta(user: UserHydratedDocument, delta: number): Promis
     { _id: user._id },
     {
       $inc: { value: delta, round_growth: delta, season_growth: delta },
-      $max: { round_best_delta: delta },
+      // Прогрес, не сира дельта - див. 3.3 плану (той самий принцип, що в measurement.service).
+      $max: { round_best_delta: delta * modeSign(user.mode) },
     },
   );
 }
@@ -100,14 +103,15 @@ export interface StakeBounds {
 }
 
 /**
- * Ставка не може перевищувати поточний value жодного з учасників - інакше
- * програвший піде в глибокий мінус, а це ламає і рейтинг, і size-тири.
- * Нижня межа - 1 см: ставка «0» позбавляє дуель сенсу.
+ * Ставка не може перевищувати прогрес жодного з учасників (не більше за
+ * прогрес у бік власної мети) - інакше програвший піде в глибокий мінус (за
+ * своєю метою), а це ламає і рейтинг, і size-тири. Нижня межа - 1 см: ставка
+ * «0» позбавляє дуель сенсу.
  *
- * Виняток: якщо в когось value <= 0, "не більше за value" дало б max <= 0,
+ * Виняток: якщо в когось прогрес <= 0, "не більше за прогрес" дало б max <= 0,
  * тобто дуель була б узагалі неможлива. За рішенням власника доступність
  * дуелі важливіша - ставка в цьому випадку обмежена фіксованою стелею
- * DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM, а не value гравців.
+ * DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM, а не прогресом гравців.
  */
 export async function getStakeBounds(
   challengerTelegramId: number,
@@ -121,11 +125,13 @@ export async function getStakeBounds(
     throw new Error('Одного з учасників дуелі більше не знайдено');
   }
 
-  if (challenger.value <= 0 || target.value <= 0) {
+  const challengerProgress = progress(challenger.value, challenger.mode);
+  const targetProgress = progress(target.value, target.mode);
+  if (challengerProgress <= 0 || targetProgress <= 0) {
     return { min: 1, max: DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM };
   }
 
-  const ceiling = Math.floor(Math.min(challenger.value, target.value));
+  const ceiling = Math.floor(Math.min(challengerProgress, targetProgress));
   return { min: 1, max: Math.max(1, ceiling) };
 }
 
@@ -352,25 +358,30 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   const amount = roundCm(Math.min(claimed.stake, bounds.max));
   const stakeReduced = amount < claimed.stake;
 
-  const challengerWins = Math.random() < 0.5;
+  const challengerWins = challengerWinsCoinFlip();
   const winner = challengerWins ? challenger : target;
   const loser = challengerWins ? target : challenger;
 
   const roundNumber = getCurrentRoundNumber();
   const questReward = await registerDuelWin(winner.telegram_id, roundNumber, settings.quest_targets);
 
-  await applyDuelDelta(winner, questReward ? amount + questReward : amount);
-  await applyDuelDelta(loser, -amount);
+  // Кожен учасник рухається в БІК СВОЄЇ мети: буровик, що переміг, іде глибше
+  // в мінус; буровик, що програв, - спливає до нуля. Знак береться з режиму
+  // КОЖНОГО окремо, тому дуель grow-проти-drill коректна в обидва боки.
+  await applyDuelDelta(winner, (questReward ? amount + questReward : amount) * modeSign(winner.mode));
+  await applyDuelDelta(loser, -amount * modeSign(loser.mode));
 
   // delta - це ФАКТИЧНО списана ставка (після перевалідації вище), а не
-  // заявлена на кроці 2; за потреби розрізнити - додати окреме поле
-  // requested_stake.
+  // заявлена на кроці 2 (див. requested_stake нижче).
   await DuelHistoryModel.create({
     chat_id: claimed.chat_id,
     challenger_telegram_id: claimed.challenger_telegram_id,
     target_telegram_id: claimed.target_telegram_id,
     winner_telegram_id: winner.telegram_id,
     delta: amount,
+    challenger_won: challengerWins,
+    requested_stake: claimed.stake,
+    quest_reward: questReward,
   });
 
   return {

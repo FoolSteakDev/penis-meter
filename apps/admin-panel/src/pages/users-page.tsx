@@ -61,6 +61,7 @@ export default function UsersPage() {
           <tr className="bg-navy text-cream">
             <th className="px-4 py-3 font-semibold">Користувач</th>
             <th className="px-4 py-3 font-semibold">Значення (см)</th>
+            <th className="px-4 py-3 font-semibold">Режим</th>
             <th className="px-4 py-3 font-semibold">Графік (роб./вих.)</th>
             <th className="px-4 py-3 font-semibold">Останні вихідні</th>
             <th className="px-4 py-3 font-semibold">Останній вимір</th>
@@ -82,6 +83,7 @@ export default function UsersPage() {
                     onSave={(value) => handleSaveValue(user, value)}
                   />
                 </td>
+                <td className="px-4 py-2 text-navy/70">{user.mode === 'drill' ? '🕳 Буровик' : '🍆 Ростить'}</td>
                 <td className="px-4 py-2">
                   <div className="inline-flex items-center gap-1">
                     <EditableNumberField
@@ -117,7 +119,7 @@ export default function UsersPage() {
               </tr>
               {expandedUserId === user.id && (
                 <tr className="bg-cream/40">
-                  <td colSpan={7} className="px-4 py-3 text-navy/70">
+                  <td colSpan={8} className="px-4 py-3 text-navy/70">
                     <div className="flex flex-wrap gap-x-6 gap-y-1">
                       <span>Досвід: {user.experience}</span>
                       <span>Приріст сезону: {user.seasonGrowth} см</span>
@@ -134,7 +136,7 @@ export default function UsersPage() {
           ))}
           {users.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-6 text-center text-navy/40">
+              <td colSpan={8} className="px-4 py-6 text-center text-navy/40">
                 Ще немає користувачів
               </td>
             </tr>

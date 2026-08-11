@@ -71,3 +71,9 @@ export const DUEL_STAKE_INPUT_MAX_ATTEMPTS = 3;
  * важливіша за суворе дотримання "не більше за value" в цьому крайньому випадку.
  */
 export const DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM = 250;
+
+// --- Режим гравця (grow/drill) ---
+
+/** Мінімальний проміжок між змінами режиму. Захист від «копаю на критфейлах,
+ *  росту на критуспіхах»: кулдаун виміру 4 год, тож у вікні ~6 вимірів. */
+export const MODE_SWITCH_COOLDOWN_HOURS = 24;

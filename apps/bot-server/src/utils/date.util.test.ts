@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { formatRemainingCooldown, isCooldownElapsed, isWeekendUtc, nowUtc } from './date.util';
+import { formatRemaining, formatRemainingCooldown, isCooldownElapsed, isWeekendUtc, nowUtc } from './date.util';
 
 dayjs.extend(utc);
 
@@ -64,5 +64,17 @@ describe('formatRemainingCooldown', () => {
   it('never goes negative once cooldown has already elapsed', () => {
     const lastMeasurementAt = dayjs.utc().subtract(COOLDOWN_HOURS + 5, 'hour').toDate();
     expect(formatRemainingCooldown(lastMeasurementAt)).toBe('00:00');
+  });
+});
+
+describe('formatRemaining', () => {
+  it('formats the time until an arbitrary future date', () => {
+    const until = dayjs.utc().add(1, 'hour').add(30, 'minute').toDate();
+    expect(formatRemaining(until)).toBe('01:30');
+  });
+
+  it('never goes negative once the date is in the past', () => {
+    const until = dayjs.utc().subtract(1, 'hour').toDate();
+    expect(formatRemaining(until)).toBe('00:00');
   });
 });

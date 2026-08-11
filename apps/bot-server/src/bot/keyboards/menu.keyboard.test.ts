@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import type { Context } from 'telegraf';
+import { describe, expect, it, vi } from 'vitest';
 import { MENU_HANDLERS } from '../commands/menu.command';
-import { buildInlineMenu, buildStickyMenuRow, MENU_ITEMS } from './menu.keyboard';
+import { buildInlineMenu, buildStickyMenuRow, MENU_ITEMS, replyWithMenu } from './menu.keyboard';
 
 describe('buildInlineMenu', () => {
   it('contains exactly 10 buttons', () => {
@@ -33,5 +34,18 @@ describe('buildStickyMenuRow', () => {
       'callback_data' in button ? button.callback_data : null,
     );
     expect(callbackData).toEqual(['m:metr', 'm:status', 'm:open']);
+  });
+});
+
+describe('replyWithMenu', () => {
+  it('prepends the actor label before the sticky row in a group chat', async () => {
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const ctx = { chat: { type: 'group' }, from: { first_name: 'Petro' }, reply } as unknown as Context;
+
+    await replyWithMenu(ctx, 'hello');
+
+    expect(reply).toHaveBeenCalledTimes(1);
+    const [text] = reply.mock.calls[0];
+    expect(text).toMatch(/^👤 Petro\n/);
   });
 });

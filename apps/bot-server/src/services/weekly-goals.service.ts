@@ -48,7 +48,7 @@ export async function takeTop3Snapshots(
   for (const chatId of chatIds) {
     const members = users.filter((u) => u.chats.includes(chatId));
     const top3 = [...members]
-      .sort((a, b) => b.value - a.value)
+      .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
       .slice(0, 3)
       .map((u) => u.telegram_id);
 
@@ -87,7 +87,7 @@ export async function processClimberQuests(
     }
 
     const members = users.filter((u) => u.chats.includes(chatId));
-    const currentTop3 = [...members].sort((a, b) => b.value - a.value).slice(0, 3);
+    const currentTop3 = [...members].sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 3);
 
     for (const user of currentTop3) {
       if (!snapshot.top3_telegram_ids.includes(user.telegram_id)) {

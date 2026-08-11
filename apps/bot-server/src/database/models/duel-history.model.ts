@@ -8,6 +8,15 @@ export interface DuelHistoryDocument {
   target_telegram_id: number;
   winner_telegram_id: number;
   delta: number;
+  /** Чи переміг саме той, хто викликав. Дублює winner_telegram_id, але робить
+   *  запит "чи є перевага в ініціатора" однорядковим агрегейтом. */
+  challenger_won: boolean | null;
+  /** Заявлена ставка на момент фіналізації - delta вже "фактично списана"
+   *  після перевалідації, і за нею не видно, чи ставку зрізали. */
+  requested_stake: number | null;
+  /** Бонус за квест, доданий переможцю понад ставку - щоб аналіз балансу
+   *  не плутав його з виграшем у дуелі. */
+  quest_reward: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -21,6 +30,9 @@ const duelHistorySchema = new Schema<DuelHistoryDocument>(
     target_telegram_id: { type: Number, required: true },
     winner_telegram_id: { type: Number, required: true },
     delta: { type: Number, required: true },
+    challenger_won: { type: Boolean, default: null },
+    requested_stake: { type: Number, default: null },
+    quest_reward: { type: Number, default: null },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

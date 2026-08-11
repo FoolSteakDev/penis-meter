@@ -18,6 +18,10 @@ export function mapUserDocumentToDto(doc: UserHydratedDocument | UserDocument): 
     roundGrowth: doc.round_growth ?? 0,
     roundBestDelta: doc.round_best_delta ?? null,
     roundMeasurementCount: doc.round_measurement_count ?? 0,
+    // `default: 'grow'` у схемі не застосовується до вже наявних у Mongo
+    // документів при читанні (напр. lean()) - фолбек тут обов'язковий.
+    mode: doc.mode ?? 'grow',
+    modeChangedAt: doc.mode_changed_at ?? null,
     titles: (doc.titles ?? []).map((title) => ({
       seasonNumber: title.season_number,
       rank: title.rank,

@@ -1,6 +1,8 @@
+import type { PipelineStage } from 'mongoose';
 import { DEFAULT_STARTING_VALUE_CM, RATING_LIMIT } from '../config/constants';
-import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
+import { UserModel, type UserDocument, type UserHydratedDocument, type UserMode } from '../database/models/user.model';
 import { mapUserDocumentToDto } from '../mappers/user.mapper';
+import { progress } from '../utils/mode.util';
 import type { UserDto } from '../dto/user.dto';
 
 export interface TelegramUserInfo {
@@ -51,25 +53,38 @@ export async function refreshKnownUserProfile(info: TelegramUserInfo): Promise<v
   );
 }
 
+/** Сортування за |value|: буровик на -500 стоїть поруч із гравцем на +500.
+ *  Рішення власника - режим це стиль гри, а не окрема ліга. */
+const ABS_RATING_PIPELINE: PipelineStage[] = [
+  { $addFields: { abs_value: { $abs: '$value' } } },
+  { $sort: { abs_value: -1, _id: 1 } }, // _id як tie-breaker: без нього порядок нестабільний між викликами
+  { $limit: RATING_LIMIT },
+];
+
 export async function getChatRating(chatId: number): Promise<UserDto[]> {
-  const users = await UserModel.find({ chats: chatId })
-    .sort({ value: -1 })
-    .limit(RATING_LIMIT);
+  const users = await UserModel.aggregate<UserDocument>([
+    { $match: { chats: chatId } } as PipelineStage,
+    ...ABS_RATING_PIPELINE,
+  ]);
   return users.map(mapUserDocumentToDto);
 }
 
 export async function getGlobalRating(): Promise<UserDto[]> {
-  const users = await UserModel.find().sort({ value: -1 }).limit(RATING_LIMIT);
+  const users = await UserModel.aggregate<UserDocument>(ABS_RATING_PIPELINE);
   return users.map(mapUserDocumentToDto);
 }
 
-/** Місце користувача за season_growth/round_growth - глобально або в межах чату. */
+/** Місце користувача за прогресом у бік ВЛАСНОЇ мети (season_growth/round_growth) - глобально або в межах чату. */
 export async function getGrowthRank(
   field: 'season_growth' | 'round_growth',
   value: number,
+  mode: UserMode,
   chatId?: number,
 ): Promise<number> {
-  const filter: Record<string, unknown> = { [field]: { $gt: value } };
+  const modeSignExpr = { $cond: [{ $eq: ['$mode', 'drill'] }, -1, 1] };
+  const filter: Record<string, unknown> = {
+    $expr: { $gt: [{ $multiply: [`$${field}`, modeSignExpr] }, progress(value, mode)] },
+  };
   if (chatId !== undefined) {
     filter.chats = chatId;
   }

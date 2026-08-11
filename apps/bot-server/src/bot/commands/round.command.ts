@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
+import { withActor } from '../utils/actor.util';
 import { SEASON_START_DATE } from '../../config/constants';
 import { getDuelSettings } from '../../services/duel.service';
 import { getActiveTheme } from '../../services/game-state.service';
@@ -18,7 +19,7 @@ export async function handleRoundCommand(ctx: Context): Promise<void> {
   const info = getCurrentRoundInfo();
   if (info.roundNumber === 0 || !info.bounds) {
     const startDate = new Date(SEASON_START_DATE).toLocaleDateString('uk-UA');
-    await ctx.reply(`🗓️ Раунди ще не почались. Старт: ${startDate}.`);
+    await ctx.reply(withActor(ctx, `🗓️ Раунди ще не почались. Старт: ${startDate}.`));
     return;
   }
 
@@ -32,7 +33,7 @@ export async function handleRoundCommand(ctx: Context): Promise<void> {
   });
 
   const daysLeft = getDaysUntil(info.bounds.endsAt);
-  const roundRank = await getGrowthRank('round_growth', user.round_growth);
+  const roundRank = await getGrowthRank('round_growth', user.round_growth, user.mode);
 
   const lines = [
     `📅 Раунд ${info.roundInSeason}/4 (сезон ${info.seasonNumber})`,

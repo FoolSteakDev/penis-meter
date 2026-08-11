@@ -17,6 +17,7 @@ import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
 import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
 import { ensureRoundInitialized } from './round-lifecycle.service';
 import { nowUtc } from '../utils/date.util';
+import { modeSign } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { createTtlCache } from '../utils/ttl-cache.util';
 
@@ -146,7 +147,10 @@ export async function performMeasurement(
   }
 
   const previousValue = user.value;
-  const delta = resolved.result.delta;
+  // Дзеркальна інверсія режиму застосовується ПІСЛЯ модифікатора, а не всередині
+  // нього: модифікатори лишаються нічого не знати про режим, а «критфейл для
+  // буровика = удача» виходить сам собою зі зміни знаку.
+  const delta = roundCm(resolved.result.delta * modeSign(user.mode));
   const newValue = roundCm(previousValue + delta);
 
   // Streak/досвід рахуємо ДО того, як перезапишемо last_measurement_at.
@@ -183,7 +187,10 @@ export async function performMeasurement(
         round_measurement_count: 1,
         experience: experienceGain,
       },
-      $max: { round_best_delta: delta },
+      // round_best_delta зберігає ПРОГРЕС (delta * modeSign), не сиру дельту -
+      // інакше для буровика "найкращий" кидок (найбільш від'ємний) ніколи б
+      // туди не потрапив через $max (див. 3.3 плану).
+      $max: { round_best_delta: delta * modeSign(user.mode) },
       $addToSet: { chats: chatId },
     },
     { new: true },

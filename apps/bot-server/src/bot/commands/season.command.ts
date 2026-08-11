@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
+import { withActor } from '../utils/actor.util';
 import { SEASON_START_DATE } from '../../config/constants';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
 import { formatCmSigned } from '../../utils/number.util';
@@ -14,7 +15,7 @@ export async function handleSeasonCommand(ctx: Context): Promise<void> {
   const info = getCurrentRoundInfo();
   if (info.roundNumber === 0) {
     const startDate = new Date(SEASON_START_DATE).toLocaleDateString('uk-UA');
-    await ctx.reply(`🗓️ Сезони ще не почались. Старт першого сезону: ${startDate}.`);
+    await ctx.reply(withActor(ctx, `🗓️ Сезони ще не почались. Старт першого сезону: ${startDate}.`));
     return;
   }
 
@@ -26,7 +27,7 @@ export async function handleSeasonCommand(ctx: Context): Promise<void> {
 
   const seasonBounds = getSeasonBounds(info.seasonNumber);
   const daysLeft = getDaysUntil(seasonBounds.endsAt);
-  const globalRank = await getGrowthRank('season_growth', user.season_growth);
+  const globalRank = await getGrowthRank('season_growth', user.season_growth, user.mode);
 
   const lines = [
     `🗓️ Сезон ${info.seasonNumber}, раунд ${info.roundInSeason}/4`,
@@ -36,7 +37,7 @@ export async function handleSeasonCommand(ctx: Context): Promise<void> {
   ];
 
   if (ctx.chat && ctx.chat.type !== 'private') {
-    const chatRank = await getGrowthRank('season_growth', user.season_growth, ctx.chat.id);
+    const chatRank = await getGrowthRank('season_growth', user.season_growth, user.mode, ctx.chat.id);
     lines.push(`💬 Місце в топі цього чату: ${chatRank}`);
   }
 

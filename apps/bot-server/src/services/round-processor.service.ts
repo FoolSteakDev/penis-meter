@@ -4,7 +4,8 @@ import { DEFAULT_STARTING_VALUE_CM, MAX_ANNOUNCED_CATCHUP_ROUNDS } from '../conf
 import { SeasonModel, type SeasonChatTop, type SeasonTopEntry } from '../database/models/season.model';
 import { UserModel, type UserHydratedDocument, type UserTitleCode } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
-import { formatCm } from '../utils/number.util';
+import { progress } from '../utils/mode.util';
+import { formatCm, formatCmSigned } from '../utils/number.util';
 import {
   getCurrentRoundNumber,
   getSeasonBounds,
@@ -70,21 +71,26 @@ async function announceRoundSummary(
     const members = users.filter((u) => u.chats.includes(chatId));
     if (members.length === 0) continue;
 
-    const mvp = [...members].sort((a, b) => b.round_growth - a.round_growth)[0];
-    const unlucky = [...members].sort((a, b) => a.round_growth - b.round_growth)[0];
+    const mvp = [...members].sort(
+      (a, b) => progress(b.round_growth, b.mode) - progress(a.round_growth, a.mode),
+    )[0];
+    const unlucky = [...members].sort(
+      (a, b) => progress(a.round_growth, a.mode) - progress(b.round_growth, b.mode),
+    )[0];
     const biggestJump = [...members]
       .filter((m) => m.round_best_delta !== null)
       .sort((a, b) => (b.round_best_delta ?? 0) - (a.round_best_delta ?? 0))[0];
 
     const lines = [`📊 Підсумки раунду ${endedRoundNumber}:`];
-    if (mvp && mvp.round_growth > 0) {
-      lines.push(`🏆 MVP тижня: ${userLabel(mvp)} (+${formatCm(mvp.round_growth)} см за тиждень)`);
+    if (mvp && progress(mvp.round_growth, mvp.mode) > 0) {
+      lines.push(`🏆 MVP тижня: ${userLabel(mvp)} (${formatCmSigned(mvp.round_growth)} см за тиждень)`);
     }
     if (biggestJump && (biggestJump.round_best_delta ?? 0) > 0) {
+      // round_best_delta - вже прогрес (див. 3.3), тому підпис завжди зі знаком "+".
       const jump = biggestJump.round_best_delta as number;
       lines.push(`⚡ Найбільший стрибок: ${userLabel(biggestJump)} (+${formatCm(jump)} см за один вимір)`);
     }
-    if (unlucky && unlucky.round_growth < 0 && unlucky !== mvp) {
+    if (unlucky && progress(unlucky.round_growth, unlucky.mode) < 0 && unlucky !== mvp) {
       lines.push(`💀 Невдаха тижня: ${userLabel(unlucky)} (${formatCm(unlucky.round_growth)} см за тиждень)`);
     }
 
@@ -128,7 +134,7 @@ async function announceWeeklyQuests(
 
 function rankAndAward(members: UserHydratedDocument[]): SeasonTopEntry[] {
   return [...members]
-    .sort((a, b) => b.season_growth - a.season_growth)
+    .sort((a, b) => progress(b.season_growth, b.mode) - progress(a.season_growth, a.mode))
     .slice(0, SEASON_TOP_SIZE)
     .map((u, index) => ({
       telegram_id: u.telegram_id,

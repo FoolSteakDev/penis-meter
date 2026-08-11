@@ -1,6 +1,7 @@
 import type { Context } from 'telegraf';
 import { Markup } from 'telegraf';
 import type { ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import { withActor } from '../utils/actor.util';
 
 export interface MenuItem {
   key: string;
@@ -61,6 +62,8 @@ export function buildReplyMenu() {
  * а не затирає її — reply_markup може бути лише один на повідомлення.
  */
 export async function replyWithMenu(ctx: Context, text: string, extra: ExtraReplyMessage = {}): Promise<unknown> {
+  text = withActor(ctx, text, extra);
+
   if (ctx.chat?.type === 'private') {
     return ctx.reply(text, extra);
   }

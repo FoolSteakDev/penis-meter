@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
+import { withActor } from '../utils/actor.util';
 import type { DuelHistoryHydratedDocument } from '../../database/models/duel-history.model';
 import { getChatDuelHistory, getPersonalDuelHistory } from '../../services/duel.service';
 import { getUserByTelegramId } from '../../services/user.service';
@@ -46,11 +47,11 @@ export async function handleDuelHistoryMeAction(ctx: Context): Promise<void> {
   const history = await getPersonalDuelHistory(from.id);
   if (history.length === 0) {
     await ctx.answerCbQuery();
-    await ctx.reply('⚔️ У тебе ще не було жодної дуелі.');
+    await ctx.reply(withActor(ctx, '⚔️ У тебе ще не було жодної дуелі.'));
     return;
   }
 
   const lines = await Promise.all(history.map(formatDuelLine));
   await ctx.answerCbQuery();
-  await ctx.reply(`⚔️ Твоя історія дуелей:\n${lines.join('\n')}`);
+  await ctx.reply(withActor(ctx, `⚔️ Твоя історія дуелей:\n${lines.join('\n')}`));
 }

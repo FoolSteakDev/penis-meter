@@ -31,6 +31,8 @@ export interface UserDto {
   roundBestDelta: number | null;
   roundMeasurementCount: number;
   titles: UserTitleDto[];
+  mode: 'grow' | 'drill';
+  modeChangedAt: string | null;
   experience: number;
   streakCurrent: number;
   streakBest: number;
