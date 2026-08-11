@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Patch, Path, Query, Route, Tags } from 'tsoa';
 import { ApiError } from '../api-error';
-import { UserModel } from '../../database/models/user.model';
+import { UserModel, type UserMode } from '../../database/models/user.model';
 import type { UserDto } from '../../dto/user.dto';
 import { mapUserDocumentToDto } from '../../mappers/user.mapper';
 
@@ -21,6 +21,7 @@ export interface UpdateUserRequest {
   username?: string | null;
   firstName?: string;
   work?: UpdateUserWorkRequest;
+  mode?: UserMode;
 }
 
 @Route('users')
@@ -53,9 +54,31 @@ export class UsersController extends Controller {
 
   @Patch('{id}')
   public async updateUser(@Path() id: string, @Body() body: UpdateUserRequest): Promise<UserDto> {
+    const existing = await UserModel.findById(id);
+    if (!existing) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    // Валідація пари value+mode РАЗОМ, з урахуванням поточних значень юзера:
+    // якщо в PATCH прийшло лише одне з двох полів, друге береться з БД -
+    // інаше зміна лише value могла б непомітно порушити інваріант режиму (4.1).
+    if (body.value !== undefined || body.mode !== undefined) {
+      const resultValue = body.value ?? existing.value;
+      const resultMode = body.mode ?? existing.mode;
+      const violatesGrow = resultMode === 'grow' && resultValue < 0;
+      const violatesDrill = resultMode === 'drill' && resultValue > 0;
+      if (violatesGrow || violatesDrill) {
+        const expected = resultMode === 'grow' ? '>= 0' : '<= 0';
+        throw new ApiError(400, `value ${resultValue} суперечить режиму '${resultMode}' (очікується ${expected})`);
+      }
+    }
+
     const update: Record<string, unknown> = {};
     if (body.value !== undefined) {
       update.value = body.value;
+    }
+    if (body.mode !== undefined) {
+      update.mode = body.mode;
     }
     if (body.username !== undefined) {
       update.username = body.username;

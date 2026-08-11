@@ -1,7 +1,9 @@
 import { CLIMBER_QUEST_REWARD_CM, MEASUREMENT_COUNT_QUEST_TIERS } from '../config/constants';
 import { RoundChatSnapshotModel } from '../database/models/round-chat-snapshot.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
+import { modeSign } from '../utils/mode.util';
 import { userLabel } from '../utils/user-label.util';
+import { buildClampedValueUpdate } from '../utils/value-update.util';
 
 export interface MeasurementCountAward {
   telegramId: number;
@@ -29,9 +31,11 @@ export async function processMeasurementCountQuests(users: UserHydratedDocument[
     }
 
     const [threshold, rewardCm] = best;
+    // Нагорода - завжди прогрес у бік мети гравця, не сирі см: буровику
+    // "N вимірів" мала б віддаляти його від мети без modeSign (4.2.3).
     await UserModel.updateOne(
       { telegram_id: user.telegram_id },
-      { $inc: { value: rewardCm, round_growth: rewardCm, season_growth: rewardCm } },
+      buildClampedValueUpdate(rewardCm * modeSign(user.mode), user.mode),
     );
     awards.push({ telegramId: user.telegram_id, label: userLabel(user), threshold, rewardCm });
   }
@@ -93,7 +97,7 @@ export async function processClimberQuests(
       if (!snapshot.top3_telegram_ids.includes(user.telegram_id)) {
         await UserModel.updateOne(
           { telegram_id: user.telegram_id },
-          { $inc: { value: CLIMBER_QUEST_REWARD_CM, round_growth: CLIMBER_QUEST_REWARD_CM, season_growth: CLIMBER_QUEST_REWARD_CM } },
+          buildClampedValueUpdate(CLIMBER_QUEST_REWARD_CM * modeSign(user.mode), user.mode),
         );
         awards.push({ chatId, telegramId: user.telegram_id, label: userLabel(user), rewardCm: CLIMBER_QUEST_REWARD_CM });
       }

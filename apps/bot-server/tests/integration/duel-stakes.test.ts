@@ -10,16 +10,16 @@ describe('getStakeBounds', () => {
     expect(await getStakeBounds(1, 2)).toEqual({ min: 1, max: 30 });
   });
 
-  it('falls back to the fixed ceiling when one participant has value === 0', async () => {
+  it('rejects a duel when one participant is at 0 cm (nothing to risk)', async () => {
     await UserModel.create({ telegram_id: 1, first_name: 'A', value: 0 });
     await UserModel.create({ telegram_id: 2, first_name: 'B', value: 30 });
-    expect(await getStakeBounds(1, 2)).toEqual({ min: 1, max: 250 });
+    await expect(getStakeBounds(1, 2)).rejects.toThrow('нема чим ризикувати');
   });
 
-  it('falls back to the fixed ceiling when one participant has negative value', async () => {
+  it('rejects a duel when one participant has negative progress (legacy data before backfill)', async () => {
     await UserModel.create({ telegram_id: 1, first_name: 'A', value: -15 });
     await UserModel.create({ telegram_id: 2, first_name: 'B', value: 30 });
-    expect(await getStakeBounds(1, 2)).toEqual({ min: 1, max: 250 });
+    await expect(getStakeBounds(1, 2)).rejects.toThrow('нема чим ризикувати');
   });
 
   it('caps by progress for a drill (negative value) vs a grow challenger', async () => {
@@ -29,11 +29,11 @@ describe('getStakeBounds', () => {
     expect(await getStakeBounds(1, 2)).toEqual({ min: 1, max: 30 });
   });
 
-  it('falls back to the fixed ceiling when a drill player has non-positive progress (value >= 0)', async () => {
+  it('rejects a duel when a drill player has non-positive progress (value >= 0, legacy data)', async () => {
     // drill: value 15 -> progress -15 <= 0.
     await UserModel.create({ telegram_id: 1, first_name: 'A', value: 15, mode: 'drill' });
     await UserModel.create({ telegram_id: 2, first_name: 'B', value: 30, mode: 'grow' });
-    expect(await getStakeBounds(1, 2)).toEqual({ min: 1, max: 250 });
+    await expect(getStakeBounds(1, 2)).rejects.toThrow('нема чим ризикувати');
   });
 });
 

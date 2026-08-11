@@ -1,9 +1,5 @@
 import type { Telegraf } from 'telegraf';
-import {
-  DUEL_DRAFT_TTL_MINUTES,
-  DUEL_HISTORY_LIMIT,
-  DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM,
-} from '../config/constants';
+import { DUEL_DRAFT_TTL_MINUTES, DUEL_HISTORY_LIMIT } from '../config/constants';
 import { DuelChallengeModel, type DuelChallengeHydratedDocument } from '../database/models/duel-challenge.model';
 import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/models/duel-history.model';
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
@@ -13,6 +9,7 @@ import { challengerWinsCoinFlip } from '../utils/duel-coin.util';
 import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { getCurrentRoundNumber } from '../utils/season-round.util';
+import { buildClampedValueUpdate } from '../utils/value-update.util';
 
 export interface DuelResolution {
   winnerTelegramId: number;
@@ -21,6 +18,12 @@ export interface DuelResolution {
   /** true, якщо amount < заявленої ставки - value програвшого впав нижче ставки між викликом і прийняттям. */
   stakeReduced: boolean;
   questReward: number | null;
+  /** value ПІСЛЯ дуелі - беремо з поверненого applyDuelDelta (4.2.2), а не
+   *  повторним findOne: між апдейтом і читанням міг пройти чужий /metr. */
+  winnerValue: number;
+  loserValue: number;
+  /** Фактично списано з переможеного. Менше за amount, якщо він уперся в 0. */
+  loserApplied: number;
 }
 
 function randomInRange(min: number, max: number): number {
@@ -34,19 +37,22 @@ const CLEANUP_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
  * Дуель зачіпає обох учасників напряму (не через їхній власний /metr), тому
  * value/round_growth/season_growth/round_best_delta потрібно оновити тут
  * вручну для КОЖНОГО з двох - інакше підсумки раунду/сезону не побачать
- * цього приросту чи втрати. Атомарний $inc/$max замість read-modify-save -
- * учасник дуелі міг у ту ж мить зробити свій /metr, і save() перезаписав би
- * весь документ поверх нього.
+ * цього приросту чи втрати. buildClampedValueUpdate (pipeline) замість
+ * read-modify-save - учасник дуелі міг у ту ж мить зробити свій /metr, і
+ * save() перезаписав би весь документ поверх нього; заразом рахує кламп об
+ * межу режиму (4.1) і повертає оновлений документ - потрібен для 4.6, щоб
+ * показати поточні value обох дуелянтів у результаті.
  */
-async function applyDuelDelta(user: UserHydratedDocument, delta: number): Promise<void> {
-  await UserModel.findOneAndUpdate(
+async function applyDuelDelta(user: UserHydratedDocument, delta: number): Promise<UserHydratedDocument> {
+  const updated = await UserModel.findOneAndUpdate(
     { _id: user._id },
-    {
-      $inc: { value: delta, round_growth: delta, season_growth: delta },
-      // Прогрес, не сира дельта - див. 3.3 плану (той самий принцип, що в measurement.service).
-      $max: { round_best_delta: delta * modeSign(user.mode) },
-    },
+    buildClampedValueUpdate(delta, user.mode),
+    { new: true },
   );
+  if (!updated) {
+    throw new Error(`Гравець ${user.telegram_id} зник під час застосування дуельної дельти`);
+  }
+  return updated;
 }
 
 export async function getDuelSettings(): Promise<DuelSettingsHydratedDocument> {
@@ -108,10 +114,10 @@ export interface StakeBounds {
  * своєю метою), а це ламає і рейтинг, і size-тири. Нижня межа - 1 см: ставка
  * «0» позбавляє дуель сенсу.
  *
- * Виняток: якщо в когось прогрес <= 0, "не більше за прогрес" дало б max <= 0,
- * тобто дуель була б узагалі неможлива. За рішенням власника доступність
- * дуелі важливіша - ставка в цьому випадку обмежена фіксованою стелею
- * DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM, а не прогресом гравців.
+ * З клампом (4.1/4.2) фіксована стеля для прогресу <= 0 стала б діркою:
+ * гравець на 0 см нічого не втрачає (програш кламнеться назад у 0), але міг
+ * би виграти без верхньої межі. Тому тепер дуель із таким гравцем
+ * забороняється взагалі - див. 4.5 плану.
  */
 export async function getStakeBounds(
   challengerTelegramId: number,
@@ -127,12 +133,11 @@ export async function getStakeBounds(
 
   const challengerProgress = progress(challenger.value, challenger.mode);
   const targetProgress = progress(target.value, target.mode);
-  if (challengerProgress <= 0 || targetProgress <= 0) {
-    return { min: 1, max: DUEL_NON_POSITIVE_VALUE_STAKE_CEILING_CM };
-  }
-
   const ceiling = Math.floor(Math.min(challengerProgress, targetProgress));
-  return { min: 1, max: Math.max(1, ceiling) };
+  if (ceiling < 1) {
+    throw new Error('Дуель неможлива: в когось із вас 0 см - нема чим ризикувати');
+  }
+  return { min: 1, max: ceiling };
 }
 
 /**
@@ -368,8 +373,21 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   // Кожен учасник рухається в БІК СВОЄЇ мети: буровик, що переміг, іде глибше
   // в мінус; буровик, що програв, - спливає до нуля. Знак береться з режиму
   // КОЖНОГО окремо, тому дуель grow-проти-drill коректна в обидва боки.
-  await applyDuelDelta(winner, (questReward ? amount + questReward : amount) * modeSign(winner.mode));
-  await applyDuelDelta(loser, -amount * modeSign(loser.mode));
+  const updatedWinner = await applyDuelDelta(
+    winner,
+    (questReward ? amount + questReward : amount) * modeSign(winner.mode),
+  );
+
+  // Свіжий read програвшого ПРАВО ПЕРЕД його власним applyDuelDelta (а не
+  // ранній `loser` з початку функції) - інакше loserApplied нижче міряв би
+  // проти значення, застарілого на кілька await (settings/bounds/quest),
+  // і "менше за amount, якщо уперся в межу" зрідка брехало б під паралельним
+  // /metr того самого гравця (та сама проблема, заради якої існує 4.2).
+  const loserBeforeDelta = await UserModel.findOne({ _id: loser._id });
+  if (!loserBeforeDelta) {
+    throw new Error(`Гравець ${loser.telegram_id} зник під час дуелі`);
+  }
+  const updatedLoser = await applyDuelDelta(loser, -amount * modeSign(loser.mode));
 
   // delta - це ФАКТИЧНО списана ставка (після перевалідації вище), а не
   // заявлена на кроці 2 (див. requested_stake нижче).
@@ -384,12 +402,17 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
     quest_reward: questReward,
   });
 
+  const loserApplied = roundCm(Math.abs(updatedLoser.value - loserBeforeDelta.value));
+
   return {
     winnerTelegramId: winner.telegram_id,
     loserTelegramId: loser.telegram_id,
     amount,
     stakeReduced,
     questReward,
+    winnerValue: updatedWinner.value,
+    loserValue: updatedLoser.value,
+    loserApplied,
   };
 }
 

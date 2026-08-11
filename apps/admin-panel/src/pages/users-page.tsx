@@ -49,6 +49,16 @@ export default function UsersPage() {
     applyUpdate(user.id, await api.updateUser(user.id, { work: { lastWeekend } }));
   }
 
+  async function handleSaveMode(user: UserDto, mode: 'grow' | 'drill') {
+    setError(null);
+    try {
+      applyUpdate(user.id, await api.updateUser(user.id, { mode }));
+    } catch (err) {
+      // Не клампити мовчки (4.8): показуємо помилку сервера про суперечність value/mode як є.
+      setError((err as Error).message);
+    }
+  }
+
   if (loading) {
     return <p className="text-navy/60">Завантаження...</p>;
   }
@@ -83,7 +93,16 @@ export default function UsersPage() {
                     onSave={(value) => handleSaveValue(user, value)}
                   />
                 </td>
-                <td className="px-4 py-2 text-navy/70">{user.mode === 'drill' ? '🕳 Буровик' : '🍆 Ростить'}</td>
+                <td className="px-4 py-2">
+                  <select
+                    value={user.mode}
+                    onChange={(e) => handleSaveMode(user, e.target.value as 'grow' | 'drill')}
+                    className="rounded-md border border-navy/20 bg-white px-2 py-1 text-sm text-navy transition-colors focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/40"
+                  >
+                    <option value="grow">🍆 Ростить</option>
+                    <option value="drill">🕳 Буровик</option>
+                  </select>
+                </td>
                 <td className="px-4 py-2">
                   <div className="inline-flex items-center gap-1">
                     <EditableNumberField

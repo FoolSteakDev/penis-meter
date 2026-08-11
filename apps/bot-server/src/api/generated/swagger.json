@@ -140,6 +140,18 @@
 						},
 						"type": "array"
 					},
+					"mode": {
+						"type": "string",
+						"enum": [
+							"grow",
+							"drill"
+						]
+					},
+					"modeChangedAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
 					"experience": {
 						"type": "number",
 						"format": "double"
@@ -175,6 +187,8 @@
 					"roundBestDelta",
 					"roundMeasurementCount",
 					"titles",
+					"mode",
+					"modeChangedAt",
 					"experience",
 					"streakCurrent",
 					"streakBest",
@@ -230,6 +244,13 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"UserMode": {
+				"type": "string",
+				"enum": [
+					"grow",
+					"drill"
+				]
+			},
 			"UpdateUserRequest": {
 				"properties": {
 					"value": {
@@ -245,6 +266,9 @@
 					},
 					"work": {
 						"$ref": "#/components/schemas/UpdateUserWorkRequest"
+					},
+					"mode": {
+						"$ref": "#/components/schemas/UserMode"
 					}
 				},
 				"type": "object",

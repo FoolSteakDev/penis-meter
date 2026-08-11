@@ -1,9 +1,12 @@
 import type { Context } from 'telegraf';
+import { Markup } from 'telegraf';
 import { MODE_SWITCH_COOLDOWN_HOURS } from '../../config/constants';
-import { UserModel, type UserMode } from '../../database/models/user.model';
+import { UserModel, type UserHydratedDocument, type UserMode } from '../../database/models/user.model';
 import { getDuelWinStats } from '../../services/duel.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemaining, nowUtc } from '../../utils/date.util';
+import { MODE_LABELS, modeSign } from '../../utils/mode.util';
+import { formatCm } from '../../utils/number.util';
 import { buildStatusView } from './status.command';
 
 function getCallbackData(ctx: Context): string | null {
@@ -11,8 +14,20 @@ function getCallbackData(ctx: Context): string | null {
   return query && 'data' in query ? query.data : null;
 }
 
-/** bot.action(/^mode:(grow|drill)$/, ...) - перемикач режиму гравця з кнопки /status. */
-export async function handleModeSwitchAction(ctx: Context): Promise<void> {
+/** null, якщо кулдаун уже минув (або ніколи не перемикав). */
+function cooldownUnlockAt(user: Pick<UserHydratedDocument, 'mode_changed_at'>): Date | null {
+  if (user.mode_changed_at === null) {
+    return null;
+  }
+  const unlockAt = new Date(user.mode_changed_at.getTime() + MODE_SWITCH_COOLDOWN_HOURS * 60 * 60 * 1000);
+  return unlockAt.getTime() > nowUtc().valueOf() ? unlockAt : null;
+}
+
+const MODE_NOUN: Record<UserMode, string> = { grow: 'росту', drill: 'буріння' };
+const MODE_SIGN_CONSTRAINT: Record<UserMode, string> = { grow: "від'ємним", drill: 'додатним' };
+
+/** bot.action(/^mode:(grow|drill)$/, ...) - крок 1: екран підтвердження, нічого не пише в БД. */
+export async function handleModeSwitchPromptAction(ctx: Context): Promise<void> {
   const from = ctx.from;
   const match = /^mode:(grow|drill)$/.exec(getCallbackData(ctx) ?? '');
   if (!match || !from) {
@@ -31,28 +46,124 @@ export async function handleModeSwitchAction(ctx: Context): Promise<void> {
     return;
   }
 
-  if (user.mode_changed_at !== null) {
-    const unlockAt = new Date(user.mode_changed_at.getTime() + MODE_SWITCH_COOLDOWN_HOURS * 60 * 60 * 1000);
-    if (unlockAt.getTime() > nowUtc().valueOf()) {
-      await ctx.answerCbQuery(`Перемкнути режим можна через ${formatRemaining(unlockAt)}`, { show_alert: true });
-      return;
-    }
+  const unlockAt = cooldownUnlockAt(user);
+  if (unlockAt) {
+    await ctx.answerCbQuery(`Перемкнути режим можна через ${formatRemaining(unlockAt)}`, { show_alert: true });
+    return;
   }
 
-  // Атомарний CAS: mode у фільтрі захищає від подвійного перемикання при
-  // паралельному натисканні кнопки (правило проєкту - не save(), див. /metr).
+  const mismatched = user.value * modeSign(target) < 0;
+  const burned = Math.abs(user.value);
+
+  const lines = mismatched
+    ? [
+        '⚠️ УВАГА: перемикання ОБНУЛИТЬ твій результат',
+        '',
+        `🎯 Режим: ${MODE_LABELS[user.mode]} → ${MODE_LABELS[target]}`,
+        '',
+        'Умови:',
+        `• У режимі ${MODE_NOUN[target]} значення не може бути ${MODE_SIGN_CONSTRAINT[target]}.`,
+        `• Твої ${formatCm(burned)} см ЗГОРЯТЬ ДОЩЕНТУ - value стане 0 см.`,
+        `• ${formatCm(burned)} см також віднімуться від приросту за раунд і за сезон.`,
+        '• Це незворотно. Наступний раз перемкнути можна буде через 24 год.',
+      ]
+    : [
+        `🎯 Перемкнути режим на «${MODE_LABELS[target]}»?`,
+        '',
+        'Умови:',
+        '• Наступний раз перемкнути можна буде через 24 год.',
+        '• Усі майбутні дельти дзеркаляться: те, що росло вгору, тепер піде вниз.',
+        `• Твої ${formatCm(user.value)} см лишаються без змін.`,
+      ];
+
+  const markup = Markup.inlineKeyboard([
+    [
+      Markup.button.callback(
+        mismatched ? `🔥 Так, спалити ${formatCm(burned)} см` : '✅ Так, перемкнути',
+        `mode:go:${target}`,
+      ),
+    ],
+    [Markup.button.callback('↩️ Скасувати', 'mode:cancel')],
+  ]);
+
+  await ctx.editMessageText(lines.join('\n'), markup);
+  await ctx.answerCbQuery();
+}
+
+/** bot.action(/^mode:go:(grow|drill)$/, ...) - крок 2: власне перемикання + обнулення при незбіжному знаку. */
+export async function handleModeSwitchConfirmAction(ctx: Context): Promise<void> {
+  const from = ctx.from;
+  const match = /^mode:go:(grow|drill)$/.exec(getCallbackData(ctx) ?? '');
+  if (!match || !from) {
+    return;
+  }
+  const target = match[1] as UserMode;
+
+  const user = await findOrCreateUser({
+    telegramId: from.id,
+    username: from.username ?? null,
+    firstName: from.first_name,
+  });
+
+  const unlockAt = cooldownUnlockAt(user);
+  if (unlockAt) {
+    await ctx.answerCbQuery(`Перемкнути режим можна через ${formatRemaining(unlockAt)}`, { show_alert: true });
+    return;
+  }
+
+  const burned = Math.abs(user.value);
+  const mismatched = user.value * modeSign(target) < 0;
+
+  // CAS з value у фільтрі - між показом екрана і натисканням "Так" гравець
+  // міг устигнути прийняти дуель чи зробити /metr, і спалити треба рівно ту
+  // суму, яку йому показали, або не спалити нічого.
   const updated = await UserModel.findOneAndUpdate(
-    { _id: user._id, mode: user.mode },
-    { $set: { mode: target, mode_changed_at: nowUtc().toDate() } },
+    { _id: user._id, mode: user.mode, value: user.value },
+    mismatched
+      ? {
+          $set: { mode: target, mode_changed_at: nowUtc().toDate(), value: 0 },
+          // Віднімаємо |value|, а НЕ (-value): інакше буровик на -50, що
+          // тікає в grow, отримав би +50 до приросту - нагороду за спалення.
+          $inc: { season_growth: -burned, round_growth: -burned },
+        }
+      : { $set: { mode: target, mode_changed_at: nowUtc().toDate() } },
     { new: true },
   );
   if (!updated) {
-    await ctx.answerCbQuery('Не вдалось перемкнути режим - спробуй ще раз', { show_alert: true });
+    await ctx.answerCbQuery('Твоє значення щойно змінилось - відкрий /status і спробуй ще раз', {
+      show_alert: true,
+    });
     return;
+  }
+
+  if (mismatched) {
+    console.log('[mode] burn', { telegram_id: from.id, from: user.mode, to: target, burned });
   }
 
   const duelStats = await getDuelWinStats(from.id);
   const { text, markup } = buildStatusView(updated, duelStats);
+  const finalText = mismatched ? `🔥 Згоріло: ${formatCm(burned)} см\n\n${text}` : text;
+
+  await ctx.editMessageText(finalText, markup);
+  await ctx.answerCbQuery();
+}
+
+/** bot.action('mode:cancel', ...) - повернутись до звичайного /status, нічого не міняючи. */
+export async function handleModeCancelAction(ctx: Context): Promise<void> {
+  const from = ctx.from;
+  if (!from) {
+    return;
+  }
+
+  const user = await findOrCreateUser({
+    telegramId: from.id,
+    username: from.username ?? null,
+    firstName: from.first_name,
+  });
+
+  const duelStats = await getDuelWinStats(from.id);
+  const { text, markup } = buildStatusView(user, duelStats);
+
   await ctx.editMessageText(text, markup);
   await ctx.answerCbQuery();
 }

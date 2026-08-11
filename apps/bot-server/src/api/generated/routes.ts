@@ -66,6 +66,8 @@ const models: TsoaRoute.Models = {
             "roundBestDelta": {"dataType":"union","subSchemas":[{"dataType":"double"},{"dataType":"enum","enums":[null]}],"required":true},
             "roundMeasurementCount": {"dataType":"double","required":true},
             "titles": {"dataType":"array","array":{"dataType":"refObject","ref":"UserTitleDto"},"required":true},
+            "mode": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["grow"]},{"dataType":"enum","enums":["drill"]}],"required":true},
+            "modeChangedAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
             "experience": {"dataType":"double","required":true},
             "streakCurrent": {"dataType":"double","required":true},
             "streakBest": {"dataType":"double","required":true},
@@ -95,6 +97,11 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserMode": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["grow"]},{"dataType":"enum","enums":["drill"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UpdateUserRequest": {
         "dataType": "refObject",
         "properties": {
@@ -102,6 +109,7 @@ const models: TsoaRoute.Models = {
             "username": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}]},
             "firstName": {"dataType":"string"},
             "work": {"ref":"UpdateUserWorkRequest"},
+            "mode": {"ref":"UserMode"},
         },
         "additionalProperties": false,
     },

@@ -4,6 +4,7 @@ import { withActor } from '../utils/actor.util';
 import { ConcurrentMeasurementError, performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
+import { MODE_LABELS } from '../../utils/mode.util';
 import { formatCm, formatCmSigned } from '../../utils/number.util';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
 
@@ -57,7 +58,14 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
     lines.push(`🎲 ${outcome.conditionName}: ${outcome.message}`);
   }
 
-  lines.push(`📊 Стало: ${formatCm(outcome.newValue)} см (${getSizeTierLabel(outcome.newValue)})`);
+  // Дельта в рядку вище вже фактична (обрізана клампом), а не накидана
+  // модифікатором - тут лишається лише сказати, ЧОМУ вона обрізана.
+  if (outcome.clamped) {
+    const boundaryHint = isDrill ? 'вище не піднімешся' : 'нижче не опустишся';
+    lines.push(`📊 Стало: ${formatCm(outcome.newValue)} см — межа режиму «${MODE_LABELS[user.mode]}», ${boundaryHint}`);
+  } else {
+    lines.push(`📊 Стало: ${formatCm(outcome.newValue)} см (${getSizeTierLabel(outcome.newValue)})`);
+  }
 
   await replyWithMenu(ctx, lines.join('\n'));
 }

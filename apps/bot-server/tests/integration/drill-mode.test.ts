@@ -40,12 +40,12 @@ async function seedDeterministicMeasurement(deltaCm: number): Promise<void> {
 describe('drill mode - measurement (phase 3.3)', () => {
   it('inverts the modifier delta for a drill-mode user', async () => {
     await seedDeterministicMeasurement(3);
-    const user = await UserModel.create({ telegram_id: 1, first_name: 'Driller', value: 10, mode: 'drill' });
+    const user = await UserModel.create({ telegram_id: 1, first_name: 'Driller', value: -10, mode: 'drill' });
 
     const outcome = await performMeasurement(user, 1);
 
     expect(outcome.delta).toBe(-3);
-    expect(outcome.newValue).toBe(7);
+    expect(outcome.newValue).toBe(-13);
   });
 
   it('does not invert the delta for a grow-mode user', async () => {
@@ -60,7 +60,7 @@ describe('drill mode - measurement (phase 3.3)', () => {
 
   it('season_growth/round_growth go negative for a driller, but round_best_delta stays positive (progress)', async () => {
     await seedDeterministicMeasurement(3);
-    const user = await UserModel.create({ telegram_id: 1, first_name: 'Driller', value: 10, mode: 'drill' });
+    const user = await UserModel.create({ telegram_id: 1, first_name: 'Driller', value: -10, mode: 'drill' });
 
     await performMeasurement(user, 1);
 

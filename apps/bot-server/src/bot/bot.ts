@@ -25,7 +25,11 @@ import {
   registerMenuButtons,
 } from './commands/menu.command';
 import { handleMetrCommand } from './commands/metr.command';
-import { handleModeSwitchAction } from './commands/mode.command';
+import {
+  handleModeCancelAction,
+  handleModeSwitchConfirmAction,
+  handleModeSwitchPromptAction,
+} from './commands/mode.command';
 import { handleRatingCommand } from './commands/rating.command';
 import { handleRoundCommand } from './commands/round.command';
 import { handleSeasonCommand } from './commands/season.command';
@@ -114,7 +118,9 @@ export function createBot(): Telegraf {
   bot.action(/^d:cancel:[a-f0-9]{24}$/, handleDuelCancelAction);
   bot.action('duel:history:me', handleDuelHistoryMeAction);
 
-  bot.action(/^mode:(grow|drill)$/, handleModeSwitchAction);
+  bot.action(/^mode:(grow|drill)$/, handleModeSwitchPromptAction);
+  bot.action(/^mode:go:(grow|drill)$/, handleModeSwitchConfirmAction);
+  bot.action('mode:cancel', handleModeCancelAction);
 
   // Стара схема (до короткого d:* префікса) - лишаємо на один реліз, щоб
   // кнопки у вже надісланих повідомленнях не мовчали.

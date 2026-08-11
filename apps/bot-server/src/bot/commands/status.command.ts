@@ -15,7 +15,7 @@ export interface StatusView {
   markup: ReturnType<typeof Markup.inlineKeyboard>;
 }
 
-/** Спільна побудова тексту/клавіатури /status - використовується і командою, і mode.command.ts::handleModeSwitchAction після перемикання. */
+/** Спільна побудова тексту/клавіатури /status - використовується і командою, і mode.command.ts (перемикач/скасування режиму) після дії. */
 export function buildStatusView(user: UserHydratedDocument, duelStats: DuelWinStats): StatusView {
   const cooldownStatus = isCooldownElapsed(user.last_measurement_at)
     ? 'доступно зараз ✅'

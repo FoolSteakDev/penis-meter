@@ -20,6 +20,7 @@ import { nowUtc } from '../utils/date.util';
 import { modeSign } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { createTtlCache } from '../utils/ttl-cache.util';
+import { buildClampedValueUpdate } from '../utils/value-update.util';
 
 /** Паралельний вимір того самого юзера вже пройшов CAS-перевірку раніше за цей. */
 export class ConcurrentMeasurementError extends Error {
@@ -32,7 +33,11 @@ export class ConcurrentMeasurementError extends Error {
 export interface MeasurementOutcome {
   previousValue: number;
   newValue: number;
+  /** ФАКТИЧНО застосована дельта (newValue - previousValue). Відрізняється від
+   *  накиданої модифікатором, коли спрацював кламп об межу режиму. */
   delta: number;
+  /** true, якщо дельту зрізав кламп: гравець уперся в 0. */
+  clamped: boolean;
   conditionName: string | null;
   message: string;
 }
@@ -151,7 +156,6 @@ export async function performMeasurement(
   // нього: модифікатори лишаються нічого не знати про режим, а «критфейл для
   // буровика = удача» виходить сам собою зі зміни знаку.
   const delta = roundCm(resolved.result.delta * modeSign(user.mode));
-  const newValue = roundCm(previousValue + delta);
 
   // Streak/досвід рахуємо ДО того, як перезапишемо last_measurement_at.
   const previousMeasurementAt = user.last_measurement_at;
@@ -169,30 +173,18 @@ export async function performMeasurement(
   // перевіряє кулдаун (значення, з якого стартував саме цей вимір) і захищає
   // від втрати даних при паралельних викликах performMeasurement/applyDuelDelta
   // над тим самим юзером (save() перезаписує весь документ без версіювання).
-  // delta вже округлена в handler.apply() (rollBaseDelta/модифікатори), тому
-  // інкрементуємо season_growth/round_growth округленою величиною напряму,
-  // без окремого кроку нормалізації після.
+  // buildClampedValueUpdate рахує кламп об межу режиму (4.1/4.2) і синхронізує
+  // season_growth/round_growth/round_best_delta ФАКТИЧНО застосованою величиною.
   const updated = await UserModel.findOneAndUpdate(
     { _id: user._id, last_measurement_at: previousMeasurementAt },
-    {
-      $set: {
-        value: newValue,
-        last_measurement_at: nowUtc().toDate(),
-        streak_current: nextStreak,
-        streak_best: Math.max(user.streak_best, nextStreak),
-      },
-      $inc: {
-        season_growth: delta,
-        round_growth: delta,
-        round_measurement_count: 1,
-        experience: experienceGain,
-      },
-      // round_best_delta зберігає ПРОГРЕС (delta * modeSign), не сиру дельту -
-      // інакше для буровика "найкращий" кидок (найбільш від'ємний) ніколи б
-      // туди не потрапив через $max (див. 3.3 плану).
-      $max: { round_best_delta: delta * modeSign(user.mode) },
-      $addToSet: { chats: chatId },
-    },
+    buildClampedValueUpdate(delta, user.mode, {
+      last_measurement_at: nowUtc().toDate(),
+      streak_current: nextStreak,
+      streak_best: Math.max(user.streak_best, nextStreak),
+      round_measurement_count: { $add: ['$round_measurement_count', 1] },
+      experience: { $add: ['$experience', experienceGain] },
+      chats: { $setUnion: ['$chats', [chatId]] },
+    }),
     { new: true },
   );
 
@@ -200,10 +192,13 @@ export async function performMeasurement(
     throw new ConcurrentMeasurementError();
   }
 
+  const appliedDelta = roundCm(updated.value - previousValue);
+
   return {
     previousValue,
-    newValue,
-    delta,
+    newValue: updated.value,
+    delta: appliedDelta,
+    clamped: appliedDelta !== delta,
     conditionName: resolved.condition.code === BASE_CONDITION_CODE ? null : resolved.condition.name,
     message: resolved.result.message,
   };

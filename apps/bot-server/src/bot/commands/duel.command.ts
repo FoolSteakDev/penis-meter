@@ -491,8 +491,13 @@ export async function handleDuelAcceptAction(ctx: Context): Promise<void> {
     const reducedNote = result.stakeReduced
       ? ` (ставку зменшено до ${formatCm(result.amount)} см - у програвшого не вистачило)`
       : '';
+    // Кламп об межу режиму (4.2) - окрема примітка, не мовчки: списано менше за amount.
+    const clampedNote =
+      result.loserApplied < result.amount
+        ? `\n🛑 ${loserLabel} уперся в межу режиму - списано лише ${formatCm(result.loserApplied)} см замість ${formatCm(result.amount)}.`
+        : '';
     await ctx.editMessageText(
-      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${formatCm(result.amount)} см у ${loserLabel}!${reducedNote}${questNote}`,
+      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${formatCm(result.amount)} см у ${loserLabel}!${reducedNote}\n📊 ${winnerLabel}: ${formatCm(result.winnerValue)} см · ${loserLabel}: ${formatCm(result.loserValue)} см${clampedNote}${questNote}`,
     );
     await ctx.answerCbQuery();
   } catch (error) {

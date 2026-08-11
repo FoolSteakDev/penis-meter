@@ -48,6 +48,7 @@ export interface UpdateUserRequest {
     schedule?: number[];
     lastWeekend?: string;
   };
+  mode?: 'grow' | 'drill';
 }
 
 export interface UsersListResponse {
