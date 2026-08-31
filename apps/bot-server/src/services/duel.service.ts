@@ -4,11 +4,10 @@ import { DuelChallengeModel, type DuelChallengeHydratedDocument } from '../datab
 import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/models/duel-history.model';
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
-import { registerDuelWin } from './quest.service';
+import { safeBump, syncWinStreakBest } from '../achievements/achievement-progress.service';
 import { challengerWinsCoinFlip } from '../utils/duel-coin.util';
 import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
-import { getCurrentRoundNumber } from '../utils/season-round.util';
 import { buildClampedValueUpdate } from '../utils/value-update.util';
 
 export interface DuelResolution {
@@ -17,7 +16,6 @@ export interface DuelResolution {
   amount: number;
   /** true, якщо amount < заявленої ставки - value програвшого впав нижче ставки між викликом і прийняттям. */
   stakeReduced: boolean;
-  questReward: number | null;
   /** value ПІСЛЯ дуелі - беремо з поверненого applyDuelDelta (4.2.2), а не
    *  повторним findOne: між апдейтом і читанням міг пройти чужий /metr. */
   winnerValue: number;
@@ -354,8 +352,6 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
     throw new Error('У цього виклику не задано ставку - спробуй заново через /duel');
   }
 
-  const settings = await getDuelSettings();
-
   // Перевалідація: між викликом (до 12 год) і прийняттям value міг впасти -
   // фактично списана сума не може перевищувати ПОТОЧНУ межу, навіть якщо на
   // момент вибору ставки вона вкладалась.
@@ -367,20 +363,14 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   const winner = challengerWins ? challenger : target;
   const loser = challengerWins ? target : challenger;
 
-  const roundNumber = getCurrentRoundNumber();
-  const questReward = await registerDuelWin(winner.telegram_id, roundNumber, settings.quest_targets);
-
   // Кожен учасник рухається в БІК СВОЄЇ мети: буровик, що переміг, іде глибше
   // в мінус; буровик, що програв, - спливає до нуля. Знак береться з режиму
   // КОЖНОГО окремо, тому дуель grow-проти-drill коректна в обидва боки.
-  const updatedWinner = await applyDuelDelta(
-    winner,
-    (questReward ? amount + questReward : amount) * modeSign(winner.mode),
-  );
+  const updatedWinner = await applyDuelDelta(winner, amount * modeSign(winner.mode));
 
   // Свіжий read програвшого ПРАВО ПЕРЕД його власним applyDuelDelta (а не
   // ранній `loser` з початку функції) - інакше loserApplied нижче міряв би
-  // проти значення, застарілого на кілька await (settings/bounds/quest),
+  // проти значення, застарілого на кілька await (bounds/applyDuelDelta переможця),
   // і "менше за amount, якщо уперся в межу" зрідка брехало б під паралельним
   // /metr того самого гравця (та сама проблема, заради якої існує 4.2).
   const loserBeforeDelta = await UserModel.findOne({ _id: loser._id });
@@ -399,8 +389,37 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
     delta: amount,
     challenger_won: challengerWins,
     requested_stake: claimed.stake,
-    quest_reward: questReward,
+    quest_reward: null,
   });
+
+  const winnerIsChallenger = challengerWins;
+
+  await safeBump(claimed.challenger_telegram_id, {
+    inc: {
+      'counters.duel_total': 1,
+      'counters.duel_initiated_accepted': 1,
+      ...(winnerIsChallenger
+        ? { 'counters.duel_wins': 1, 'counters.duel_win_streak_current': 1 }
+        : {}),
+    },
+    ...(winnerIsChallenger
+      ? { max: { 'counters.max_stake_won': amount } }
+      : { set: { 'counters.duel_win_streak_current': 0 } }),
+  });
+
+  await safeBump(claimed.target_telegram_id, {
+    inc: {
+      'counters.duel_total': 1,
+      ...(!winnerIsChallenger
+        ? { 'counters.duel_wins': 1, 'counters.duel_win_streak_current': 1, 'counters.duel_defended_wins': 1 }
+        : {}),
+    },
+    ...(!winnerIsChallenger
+      ? { max: { 'counters.max_stake_won': amount } }
+      : { set: { 'counters.duel_win_streak_current': 0 } }),
+  });
+
+  await syncWinStreakBest(winner.telegram_id);
 
   const loserApplied = roundCm(Math.abs(updatedLoser.value - loserBeforeDelta.value));
 
@@ -409,7 +428,6 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
     loserTelegramId: loser.telegram_id,
     amount,
     stakeReduced,
-    questReward,
     winnerValue: updatedWinner.value,
     loserValue: updatedLoser.value,
     loserApplied,

@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AchievementSettingsModel } from '../../database/models/achievement-settings.model';
 import { UserModel } from '../../database/models/user.model';
 import {
   handleModeCancelAction,
@@ -13,8 +14,21 @@ function fakeCtx(telegramId: number, data: string) {
     callbackQuery: { data },
     answerCbQuery: vi.fn().mockResolvedValue(undefined),
     editMessageText: vi.fn().mockResolvedValue(undefined),
-  } as unknown as Context & { answerCbQuery: ReturnType<typeof vi.fn>; editMessageText: ReturnType<typeof vi.fn> };
+    reply: vi.fn().mockResolvedValue(undefined),
+  } as unknown as Context & {
+    answerCbQuery: ReturnType<typeof vi.fn>;
+    editMessageText: ReturnType<typeof vi.fn>;
+    reply: ReturnType<typeof vi.fn>;
+  };
 }
+
+// Ці тести перевіряють семантику ПЕРЕМИКАННЯ РЕЖИМУ, а не досягнення - вимикаємо
+// систему досягнень, щоб нагорода за 'twoface' (перемикання режиму) не спотворювала
+// точні очікувані value/season_growth/round_growth нижче. Достягнення мають власні
+// тести в achievements/.
+beforeEach(async () => {
+  await AchievementSettingsModel.create({ is_enabled: false });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

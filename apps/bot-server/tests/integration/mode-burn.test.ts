@@ -1,5 +1,6 @@
 import type { Context } from 'telegraf';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AchievementSettingsModel } from '../../src/database/models/achievement-settings.model';
 import { UserModel } from '../../src/database/models/user.model';
 import { handleModeSwitchConfirmAction } from '../../src/bot/commands/mode.command';
 
@@ -9,8 +10,19 @@ function fakeCtx(telegramId: number, data: string) {
     callbackQuery: { data },
     answerCbQuery: vi.fn().mockResolvedValue(undefined),
     editMessageText: vi.fn().mockResolvedValue(undefined),
-  } as unknown as Context & { answerCbQuery: ReturnType<typeof vi.fn>; editMessageText: ReturnType<typeof vi.fn> };
+    reply: vi.fn().mockResolvedValue(undefined),
+  } as unknown as Context & {
+    answerCbQuery: ReturnType<typeof vi.fn>;
+    editMessageText: ReturnType<typeof vi.fn>;
+    reply: ReturnType<typeof vi.fn>;
+  };
 }
+
+// Цей файл перевіряє лише напрямок віднімання при "спалюванні" (4.3.3) - вимикаємо
+// систему досягнень, щоб нагорода за 'twoface' не спотворювала точні очікування нижче.
+beforeEach(async () => {
+  await AchievementSettingsModel.create({ is_enabled: false });
+});
 
 /**
  * 4.3.3: при обнуленні (незбіжний знак) growth-поля мають ВІДНІМАТИ |value|,

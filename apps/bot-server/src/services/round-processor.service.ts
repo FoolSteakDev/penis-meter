@@ -3,9 +3,13 @@ import type { Telegraf } from 'telegraf';
 import { DEFAULT_STARTING_VALUE_CM, MAX_ANNOUNCED_CATCHUP_ROUNDS } from '../config/constants';
 import { SeasonModel, type SeasonChatTop, type SeasonTopEntry } from '../database/models/season.model';
 import { UserModel, type UserHydratedDocument, type UserTitleCode } from '../database/models/user.model';
+import { formatUnlocks } from '../achievements/achievement-announce';
+import { safeBump } from '../achievements/achievement-progress.service';
+import { getAchievementSettings } from '../achievements/achievement-settings.service';
+import { safeSync } from '../achievements/achievement.service';
 import { nowUtc } from '../utils/date.util';
 import { progress } from '../utils/mode.util';
-import { formatCm, formatCmSigned } from '../utils/number.util';
+import { formatCm, formatCmSigned, roundCm } from '../utils/number.util';
 import {
   getCurrentRoundNumber,
   getSeasonBounds,
@@ -15,7 +19,7 @@ import {
 import { userLabel } from '../utils/user-label.util';
 import { getOrCreateGameState } from './game-state.service';
 import { getAllChatIds, getActiveUsers, initializeRound } from './round-lifecycle.service';
-import { processClimberQuests, processMeasurementCountQuests } from './weekly-goals.service';
+import { collectRoundStandings } from './round-standings.service';
 
 const SEASON_TOP_SIZE = 10;
 
@@ -100,35 +104,50 @@ async function announceRoundSummary(
   }
 }
 
-async function announceWeeklyQuests(
+/**
+ * Замінює колишні "квести тижня" (announceWeeklyQuests): рахує лічильники
+ * holder/climber і оголошує розблоковані рівні досягнень у ВСІХ чатах
+ * гравця (а не лише в тому, де сталась подія - на відміну від /metr і дуелі).
+ */
+async function announceAchievementUnlocks(
   bot: Telegraf,
   users: UserHydratedDocument[],
   endedRoundNumber: number,
   announce: boolean,
 ): Promise<void> {
-  const measurementAwards = await processMeasurementCountQuests(users);
-  const climberAwards = await processClimberQuests(users, getAllChatIds(users), endedRoundNumber);
+  const standings = await collectRoundStandings(users, getAllChatIds(users), endedRoundNumber);
 
+  const seenTop3 = new Set<number>();
+  for (const ids of standings.top3ByChat.values()) {
+    for (const id of ids) {
+      // Гравець у топ-3 одразу двох чатів отримує +1, а не +2: досягнення про
+      // «тримати топ раунд за раундом», а не про кількість чатів (для цього є `traveler`).
+      if (!seenTop3.has(id)) {
+        seenTop3.add(id);
+        await safeBump(id, { inc: { 'counters.top3_round_finishes': 1 } });
+      }
+    }
+  }
+  for (const { telegramId } of standings.climbers) {
+    await safeBump(telegramId, { inc: { 'counters.climber_entries': 1 } });
+  }
+
+  const settings = await getAchievementSettings();
   const byChat = new Map<number, string[]>();
 
-  for (const award of measurementAwards) {
-    const user = users.find((u) => u.telegram_id === award.telegramId);
-    if (!user) continue;
+  for (const user of users) {
+    const unlocks = await safeSync(user.telegram_id);
+    if (unlocks.length === 0 || !settings.announce_enabled) continue;
+    const text = formatUnlocks(userLabel(user), unlocks);
     for (const chatId of user.chats) {
-      const lines = byChat.get(chatId) ?? [];
-      lines.push(`📈 ${award.label}: ${award.threshold}+ вимірів за тиждень → +${formatCm(award.rewardCm)} см!`);
-      byChat.set(chatId, lines);
+      const texts = byChat.get(chatId) ?? [];
+      texts.push(text);
+      byChat.set(chatId, texts);
     }
   }
 
-  for (const award of climberAwards) {
-    const lines = byChat.get(award.chatId) ?? [];
-    lines.push(`🚀 ${award.label} увірвався в топ-3 чату цього тижня → +${formatCm(award.rewardCm)} см!`);
-    byChat.set(award.chatId, lines);
-  }
-
-  for (const [chatId, lines] of byChat) {
-    await sendMessageSafely(bot, chatId, `🎯 Квести тижня:\n${lines.join('\n')}`, announce);
+  for (const [chatId, texts] of byChat) {
+    await sendMessageSafely(bot, chatId, texts.join('\n\n'), announce);
   }
 }
 
@@ -205,6 +224,15 @@ async function announceSeasonSummary(
     { upsert: true },
   );
 
+  // Фіксуємо ДО обнулення season_growth нижче - інакше season_rush відкриється
+  // лише через тиждень. announceAchievementUnlocks (де і рахуємось rewards/
+  // анонси) викликається вже ПІСЛЯ цього блоку в processRoundTransitions.
+  for (const u of users) {
+    await safeBump(u.telegram_id, {
+      max: { 'counters.best_season_growth': roundCm(progress(u.season_growth, u.mode)) },
+    });
+  }
+
   await UserModel.updateMany({}, { $set: { season_growth: 0 } });
 }
 
@@ -257,15 +285,19 @@ export async function processRoundTransitions(bot: Telegraf, at: Dayjs = nowUtc(
     const users = await getActiveUsers();
 
     await announceRoundSummary(bot, users, endedRoundNumber, announce);
-    // Квестові нагороди нараховуються тут, до resetRoundCounters() нижче -
-    // round_growth від них буде скинутий за мить, і це нормально (квест
-    // підсумовує вже завершений раунд), а season_growth лишається, бо
-    // resetRoundCounters() його не чіпає.
-    await announceWeeklyQuests(bot, users, endedRoundNumber, announce);
 
+    // ПЕРЕД announceAchievementUnlocks - зафіксувати best_season_growth
+    // (announceSeasonSummary) до того, як його побачить syncAchievements,
+    // інакше season_rush відкриється лише за тиждень (наступний раунд).
     if (isLastRoundOfSeason(endedRoundNumber)) {
       await announceSeasonSummary(bot, users, getSeasonNumber(endedRoundNumber), announce);
     }
+
+    // Лічильники досягнень рахуються тут, до resetRoundCounters() нижче -
+    // round_growth від них буде скинутий за мить, і це нормально (підсумок
+    // стосується вже завершеного раунду), а season_growth лишається, бо
+    // resetRoundCounters() його не чіпає.
+    await announceAchievementUnlocks(bot, users, endedRoundNumber, announce);
 
     await resetRoundCounters();
 

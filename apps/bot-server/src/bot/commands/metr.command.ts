@@ -1,12 +1,16 @@
 import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { withActor } from '../utils/actor.util';
+import { formatUnlocks } from '../../achievements/achievement-announce';
+import { getAchievementSettings } from '../../achievements/achievement-settings.service';
+import { safeSync } from '../../achievements/achievement.service';
 import { ConcurrentMeasurementError, performMeasurement } from '../../services/measurement.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemainingCooldown, isCooldownElapsed } from '../../utils/date.util';
 import { MODE_LABELS } from '../../utils/mode.util';
 import { formatCm, formatCmSigned } from '../../utils/number.util';
 import { getSizeTierLabel } from '../../utils/size-tier.util';
+import { userLabel } from '../../utils/user-label.util';
 
 export async function handleMetrCommand(ctx: Context): Promise<void> {
   const from = ctx.from;
@@ -68,4 +72,13 @@ export async function handleMetrCommand(ctx: Context): Promise<void> {
   }
 
   await replyWithMenu(ctx, lines.join('\n'));
+
+  // Окремим повідомленням, не дописуванням у результат виміру - інакше губиться в тексті.
+  const unlocks = await safeSync(from.id);
+  if (unlocks.length) {
+    const settings = await getAchievementSettings();
+    if (settings.announce_enabled) {
+      await ctx.reply(formatUnlocks(userLabel(user), unlocks));
+    }
+  }
 }

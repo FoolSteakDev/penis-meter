@@ -2,6 +2,7 @@ import {
   BASE_CONDITION_CODE,
   BASE_EXPERIENCE_PER_MEASUREMENT,
   EXPERIENCE_PER_STREAK_POINT,
+  PUNCTUAL_WINDOW_MINUTES,
   STREAK_GRACE_HOURS,
 } from '../config/constants';
 import { ConditionModel, type ConditionHydratedDocument } from '../database/models/condition.model';
@@ -16,11 +17,12 @@ import { modifierRegistry } from '../modifiers/modifier.registry';
 import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
 import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
 import { ensureRoundInitialized } from './round-lifecycle.service';
-import { nowUtc } from '../utils/date.util';
-import { modeSign } from '../utils/mode.util';
+import { kyivHour, nowUtc } from '../utils/date.util';
+import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { createTtlCache } from '../utils/ttl-cache.util';
 import { buildClampedValueUpdate } from '../utils/value-update.util';
+import { safeBump } from '../achievements/achievement-progress.service';
 
 /** Паралельний вимір того самого юзера вже пройшов CAS-перевірку раніше за цей. */
 export class ConcurrentMeasurementError extends Error {
@@ -193,6 +195,33 @@ export async function performMeasurement(
   }
 
   const appliedDelta = roundCm(updated.value - previousValue);
+
+  const sign = modeSign(user.mode);
+  const appliedProgress = roundCm(appliedDelta * sign);
+  const isNight = kyivHour() < 5; // 00:00–04:59 за Києвом
+  const isPunctual =
+    previousMeasurementAt !== null &&
+    nowUtc().diff(previousMeasurementAt, 'hour', true) <=
+      envConfig.measurementCooldownHours + PUNCTUAL_WINDOW_MINUTES / 60;
+
+  await safeBump(user.telegram_id, {
+    inc: {
+      'counters.total_measurements': 1,
+      ...(isNight ? { 'counters.night_measurements': 1 } : {}),
+      ...(isPunctual ? { 'counters.punctual_measurements': 1 } : {}),
+      ...(user.mode === 'drill' ? { 'counters.drill_measurements': 1 } : {}),
+      ...(activeTheme ? { 'counters.theme_measurements': 1 } : {}),
+      ...(resolved.condition.code !== BASE_CONDITION_CODE
+        ? { [`condition_hits.${resolved.condition.code}`]: 1 }
+        : {}),
+    },
+    max: {
+      'counters.best_progress_delta': appliedProgress,
+      'counters.peak_progress': roundCm(progress(updated.value, updated.mode)),
+      'counters.best_round_measurement_count': updated.round_measurement_count,
+    },
+    min: { 'counters.worst_progress_delta': appliedProgress },
+  });
 
   return {
     previousValue,

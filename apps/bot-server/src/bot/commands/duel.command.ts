@@ -3,6 +3,9 @@ import { Markup } from 'telegraf';
 import type { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram';
 import { DUEL_OPPONENTS_PER_PAGE, DUEL_STAKE_INPUT_MAX_ATTEMPTS } from '../../config/constants';
 import type { DuelChallengeHydratedDocument } from '../../database/models/duel-challenge.model';
+import { formatUnlocks } from '../../achievements/achievement-announce';
+import { getAchievementSettings } from '../../achievements/achievement-settings.service';
+import { safeSync } from '../../achievements/achievement.service';
 import {
   cancelChallenge,
   computeAutoStake,
@@ -487,7 +490,6 @@ export async function handleDuelAcceptAction(ctx: Context): Promise<void> {
       userLabelByTelegramId(result.loserTelegramId),
     ]);
 
-    const questNote = result.questReward ? `\n🎯 Квест виконано! Бонус: +${formatCm(result.questReward)} см` : '';
     const reducedNote = result.stakeReduced
       ? ` (ставку зменшено до ${formatCm(result.amount)} см - у програвшого не вистачило)`
       : '';
@@ -496,10 +498,26 @@ export async function handleDuelAcceptAction(ctx: Context): Promise<void> {
       result.loserApplied < result.amount
         ? `\n🛑 ${loserLabel} уперся в межу режиму - списано лише ${formatCm(result.loserApplied)} см замість ${formatCm(result.amount)}.`
         : '';
+    // Про досягнення каже окреме повідомлення нижче (achievements/achievement-announce.ts).
     await ctx.editMessageText(
-      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${formatCm(result.amount)} см у ${loserLabel}!${reducedNote}\n📊 ${winnerLabel}: ${formatCm(result.winnerValue)} см · ${loserLabel}: ${formatCm(result.loserValue)} см${clampedNote}${questNote}`,
+      `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${formatCm(result.amount)} см у ${loserLabel}!${reducedNote}\n📊 ${winnerLabel}: ${formatCm(result.winnerValue)} см · ${loserLabel}: ${formatCm(result.loserValue)} см${clampedNote}`,
     );
     await ctx.answerCbQuery();
+
+    const [winnerUnlocks, loserUnlocks] = await Promise.all([
+      safeSync(result.winnerTelegramId),
+      safeSync(result.loserTelegramId),
+    ]);
+    if (winnerUnlocks.length || loserUnlocks.length) {
+      const settings = await getAchievementSettings();
+      if (settings.announce_enabled) {
+        const blocks = [
+          winnerUnlocks.length ? formatUnlocks(winnerLabel, winnerUnlocks) : null,
+          loserUnlocks.length ? formatUnlocks(loserLabel, loserUnlocks) : null,
+        ].filter((block): block is string => block !== null);
+        await ctx.reply(blocks.join('\n\n'));
+      }
+    }
   } catch (error) {
     await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось завершити дуель', {
       show_alert: true,

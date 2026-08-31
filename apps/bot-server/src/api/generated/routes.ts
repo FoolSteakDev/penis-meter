@@ -11,6 +11,8 @@ import { RoundsController } from './../controllers/rounds.controller';
 import { DuelSettingsController } from './../controllers/duel-settings.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ConditionsController } from './../controllers/conditions.controller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { AchievementsController } from './../controllers/achievements.controller';
 import type { Request as ExRequest, Response as ExResponse, RequestHandler, Router } from 'express';
 
 
@@ -151,15 +153,6 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "DuelQuestTargetDto": {
-        "dataType": "refObject",
-        "properties": {
-            "target": {"dataType":"double","required":true},
-            "rewardCm": {"dataType":"double","required":true},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "DuelSettingsDto": {
         "dataType": "refObject",
         "properties": {
@@ -167,7 +160,6 @@ const models: TsoaRoute.Models = {
             "minDelta": {"dataType":"double","required":true},
             "maxDelta": {"dataType":"double","required":true},
             "isEnabled": {"dataType":"boolean","required":true},
-            "questTargets": {"dataType":"array","array":{"dataType":"refObject","ref":"DuelQuestTargetDto"},"required":true},
             "challengeTtlMinutes": {"dataType":"double","required":true},
             "maxPendingChallenges": {"dataType":"double","required":true},
             "createdAt": {"dataType":"datetime","required":true},
@@ -182,7 +174,6 @@ const models: TsoaRoute.Models = {
             "minDelta": {"dataType":"double"},
             "maxDelta": {"dataType":"double"},
             "isEnabled": {"dataType":"boolean"},
-            "questTargets": {"dataType":"array","array":{"dataType":"refObject","ref":"DuelQuestTargetDto"}},
             "challengeTtlMinutes": {"dataType":"double"},
             "maxPendingChallenges": {"dataType":"double"},
         },
@@ -249,6 +240,61 @@ const models: TsoaRoute.Models = {
             "maxDelta": {"dataType":"double"},
             "fixedValues": {"dataType":"array","array":{"dataType":"double"}},
             "config": {"ref":"Record_string.unknown_"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "AchievementSettingsDto": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "isEnabled": {"dataType":"boolean","required":true},
+            "announceEnabled": {"dataType":"boolean","required":true},
+            "rewardMultiplier": {"dataType":"double","required":true},
+            "createdAt": {"dataType":"datetime","required":true},
+            "updatedAt": {"dataType":"datetime","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateAchievementSettingsRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "isEnabled": {"dataType":"boolean"},
+            "announceEnabled": {"dataType":"boolean"},
+            "rewardMultiplier": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "AchievementDefinitionDto": {
+        "dataType": "refObject",
+        "properties": {
+            "code": {"dataType":"string","required":true},
+            "emoji": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+            "hint": {"dataType":"string","required":true},
+            "category": {"dataType":"string","required":true},
+            "unit": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["count"]},{"dataType":"enum","enums":["cm"]},{"dataType":"enum","enums":["days"]}],"required":true},
+            "thresholds": {"dataType":"array","array":{"dataType":"double"},"required":true},
+            "rewards": {"dataType":"array","array":{"dataType":"double"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ResetAchievementsResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "affected": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ResetAchievementsRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "telegramId": {"dataType":"double"},
+            "keepCounters": {"dataType":"boolean"},
         },
         "additionalProperties": false,
     },
@@ -619,6 +665,124 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'deleteCondition',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAchievementsController_getSettings: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/achievements/settings',
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController)),
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController.prototype.getSettings)),
+
+            async function AchievementsController_getSettings(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAchievementsController_getSettings, request, response });
+
+                const controller = new AchievementsController();
+
+              await templateService.apiHandler({
+                methodName: 'getSettings',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAchievementsController_updateSettings: Record<string, TsoaRoute.ParameterSchema> = {
+                body: {"in":"body","name":"body","required":true,"ref":"UpdateAchievementSettingsRequest"},
+        };
+        app.patch('/achievements/settings',
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController)),
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController.prototype.updateSettings)),
+
+            async function AchievementsController_updateSettings(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAchievementsController_updateSettings, request, response });
+
+                const controller = new AchievementsController();
+
+              await templateService.apiHandler({
+                methodName: 'updateSettings',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAchievementsController_getDefinitions: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/achievements/definitions',
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController)),
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController.prototype.getDefinitions)),
+
+            async function AchievementsController_getDefinitions(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAchievementsController_getDefinitions, request, response });
+
+                const controller = new AchievementsController();
+
+              await templateService.apiHandler({
+                methodName: 'getDefinitions',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAchievementsController_reset: Record<string, TsoaRoute.ParameterSchema> = {
+                body: {"in":"body","name":"body","required":true,"ref":"ResetAchievementsRequest"},
+        };
+        app.post('/achievements/reset',
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController)),
+            ...(fetchMiddlewares<RequestHandler>(AchievementsController.prototype.reset)),
+
+            async function AchievementsController_reset(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAchievementsController_reset, request, response });
+
+                const controller = new AchievementsController();
+
+              await templateService.apiHandler({
+                methodName: 'reset',
                 controller,
                 response,
                 next,

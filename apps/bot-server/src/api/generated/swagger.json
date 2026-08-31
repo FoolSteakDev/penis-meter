@@ -387,24 +387,6 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"DuelQuestTargetDto": {
-				"properties": {
-					"target": {
-						"type": "number",
-						"format": "double"
-					},
-					"rewardCm": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"target",
-					"rewardCm"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
 			"DuelSettingsDto": {
 				"properties": {
 					"id": {
@@ -420,12 +402,6 @@
 					},
 					"isEnabled": {
 						"type": "boolean"
-					},
-					"questTargets": {
-						"items": {
-							"$ref": "#/components/schemas/DuelQuestTargetDto"
-						},
-						"type": "array"
 					},
 					"challengeTtlMinutes": {
 						"type": "number",
@@ -449,7 +425,6 @@
 					"minDelta",
 					"maxDelta",
 					"isEnabled",
-					"questTargets",
 					"challengeTtlMinutes",
 					"maxPendingChallenges",
 					"createdAt",
@@ -470,12 +445,6 @@
 					},
 					"isEnabled": {
 						"type": "boolean"
-					},
-					"questTargets": {
-						"items": {
-							"$ref": "#/components/schemas/DuelQuestTargetDto"
-						},
-						"type": "array"
 					},
 					"challengeTtlMinutes": {
 						"type": "number",
@@ -661,6 +630,139 @@
 					},
 					"config": {
 						"$ref": "#/components/schemas/Record_string.unknown_"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AchievementSettingsDto": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"announceEnabled": {
+						"type": "boolean"
+					},
+					"rewardMultiplier": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"isEnabled",
+					"announceEnabled",
+					"rewardMultiplier",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateAchievementSettingsRequest": {
+				"properties": {
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"announceEnabled": {
+						"type": "boolean"
+					},
+					"rewardMultiplier": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AchievementDefinitionDto": {
+				"properties": {
+					"code": {
+						"type": "string"
+					},
+					"emoji": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"hint": {
+						"type": "string"
+					},
+					"category": {
+						"type": "string"
+					},
+					"unit": {
+						"type": "string",
+						"enum": [
+							"count",
+							"cm",
+							"days"
+						]
+					},
+					"thresholds": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array",
+						"description": "Завжди рівно 4 елементи (рівні I..IV) - tsoa не вміє кортежі у DTO."
+					},
+					"rewards": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"code",
+					"emoji",
+					"name",
+					"hint",
+					"category",
+					"unit",
+					"thresholds",
+					"rewards"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResetAchievementsResponse": {
+				"properties": {
+					"affected": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"affected"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResetAchievementsRequest": {
+				"properties": {
+					"telegramId": {
+						"type": "number",
+						"format": "double",
+						"description": "Кому скидати. Не передано - всім."
+					},
+					"keepCounters": {
+						"type": "boolean",
+						"description": "true - лишити сирі лічильники, обнулити тільки відкриті рівні (гравці відкриють їх заново і ЗНОВУ отримають см). Дефолт false."
 					}
 				},
 				"type": "object",
@@ -1055,6 +1157,117 @@
 						}
 					}
 				]
+			}
+		},
+		"/achievements/settings": {
+			"get": {
+				"operationId": "GetSettings",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AchievementSettingsDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Achievements"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"patch": {
+				"operationId": "UpdateSettings",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AchievementSettingsDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Achievements"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateAchievementSettingsRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/achievements/definitions": {
+			"get": {
+				"operationId": "GetDefinitions",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/AchievementDefinitionDto"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"description": "Довідник для адмінки: коди, назви, пороги, нагороди. Тільки читання - реєстр у коді.",
+				"tags": [
+					"Achievements"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/achievements/reset": {
+			"post": {
+				"operationId": "Reset",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResetAchievementsResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Скидання. Без telegramId - усім гравцям.",
+				"tags": [
+					"Achievements"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ResetAchievementsRequest"
+							}
+						}
+					}
+				}
 			}
 		}
 	},

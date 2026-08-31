@@ -1,5 +1,6 @@
 import type { Context, Telegraf } from 'telegraf';
 import { buildInlineMenu, buildReplyMenu, MENU_ITEMS } from '../keyboards/menu.keyboard';
+import { handleAchievementsCommand } from './achievements.command';
 import { handleDuelHistoryCommand } from './duel-history.command';
 import { handleAdminCommand } from './admin.command';
 import { handleDuelCommand } from './duel.command';
@@ -21,6 +22,7 @@ export const MENU_HANDLERS: Record<string, MenuHandler> = {
   grating: handleGlobalRatingCommand,
   season: handleSeasonCommand,
   round: handleRoundCommand,
+  ach: handleAchievementsCommand,
   duel: handleDuelCommand,
   dhist: handleDuelHistoryCommand,
   shist: handleSeasonHistoryCommand,

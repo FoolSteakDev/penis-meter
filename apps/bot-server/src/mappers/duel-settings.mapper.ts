@@ -9,7 +9,6 @@ export function mapDuelSettingsDocumentToDto(
     minDelta: doc.min_delta,
     maxDelta: doc.max_delta,
     isEnabled: doc.is_enabled,
-    questTargets: doc.quest_targets.map((t) => ({ target: t.target, rewardCm: t.reward_cm })),
     challengeTtlMinutes: doc.challenge_ttl_minutes,
     maxPendingChallenges: doc.max_pending_challenges,
     createdAt: doc.created_at,

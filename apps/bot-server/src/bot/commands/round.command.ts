@@ -2,12 +2,10 @@ import type { Context } from 'telegraf';
 import { replyWithMenu } from '../keyboards/menu.keyboard';
 import { withActor } from '../utils/actor.util';
 import { SEASON_START_DATE } from '../../config/constants';
-import { getDuelSettings } from '../../services/duel.service';
 import { getActiveTheme } from '../../services/game-state.service';
-import { getDuelQuestForRound } from '../../services/quest.service';
 import { ensureRoundInitialized } from '../../services/round-lifecycle.service';
 import { findOrCreateUser, getGrowthRank } from '../../services/user.service';
-import { formatCm, formatCmSigned } from '../../utils/number.util';
+import { formatCmSigned } from '../../utils/number.util';
 import { getCurrentRoundInfo, getDaysUntil } from '../../utils/season-round.util';
 
 export async function handleRoundCommand(ctx: Context): Promise<void> {
@@ -44,15 +42,6 @@ export async function handleRoundCommand(ctx: Context): Promise<void> {
 
   if (theme) {
     lines.push(`🎭 Тема тижня: ${theme.name} - ${theme.description}`);
-  }
-
-  const quest = await getDuelQuestForRound(user.telegram_id, info.roundNumber);
-  if (quest?.is_completed) {
-    const settings = await getDuelSettings();
-    const reward = settings.quest_targets.find((t) => t.target === quest.target)?.reward_cm ?? 0;
-    lines.push(`✅ Квест виконано: виграно ${quest.target} дуелей → +${formatCm(reward)} см`);
-  } else if (quest) {
-    lines.push(`🎯 Квест: виграй дуелей ${quest.progress}/${quest.target}`);
   }
 
   await replyWithMenu(ctx, lines.join('\n'));

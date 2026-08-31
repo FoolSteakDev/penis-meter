@@ -3,7 +3,6 @@ import { DuelChallengeModel } from '../../src/database/models/duel-challenge.mod
 import { UserModel } from '../../src/database/models/user.model';
 import { resolveChallenge } from '../../src/services/duel.service';
 import * as duelCoin from '../../src/utils/duel-coin.util';
-import * as questService from '../../src/services/quest.service';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -12,19 +11,23 @@ afterEach(() => {
 /**
  * 4.9: переможений на 3 см (progress) при ставці 12 -> loserApplied === 3,
  * winnerValue/loserValue збігаються з БД. Симулюємо ТОЙ САМЕ паралельний
- * /metr, заради якого існує 4.2: під час await registerDuelWin (реальна
- * точка await у resolveChallenge, до бounds-перевалідації вже пройденої)
- * прогрес переможеного стискається з 12 до 3, а resolveChallenge все одно
- * мусить списати рівно 3, а не 12 і не впасти в неузгодженість.
+ * /metr, заради якого існує 4.2: рівно в момент, коли resolveChallenge читає
+ * loserBeforeDelta (findOne за _id - остання точка ПЕРЕД власним applyDuelDelta
+ * програвшого, вже ПІСЛЯ getStakeBounds-перевалідації), прогрес переможеного
+ * стискається з 12 до 3, а resolveChallenge все одно мусить списати рівно 3,
+ * а не 12 і не впасти в неузгодженість.
  */
 describe('duel resolution under a concurrent /metr race (phase 4.2/4.6)', () => {
   it('clamps the loser at the boundary and reports the real applied amount', async () => {
     vi.spyOn(duelCoin, 'challengerWinsCoinFlip').mockReturnValue(true);
-    vi.spyOn(questService, 'registerDuelWin').mockImplementation(async () => {
-      // Симуляція паралельного /metr, що приземлився саме в цьому вікні -
-      // до getStakeBounds-перевалідації (яка вже пройшла раніше) стискає прогрес.
-      await UserModel.updateOne({ telegram_id: 2 }, { $set: { value: 3 } });
-      return null;
+    const originalFindOne = UserModel.findOne.bind(UserModel);
+    vi.spyOn(UserModel, 'findOne').mockImplementation(async (filter?: Record<string, unknown>) => {
+      // loserBeforeDelta шукає за _id (усі інші виклики цієї функції - за
+      // telegram_id) - саме тут і має приземлитись паралельний /metr.
+      if (filter && '_id' in filter) {
+        await UserModel.updateOne({ telegram_id: 2 }, { $set: { value: 3 } });
+      }
+      return originalFindOne(filter as never);
     });
 
     await UserModel.create({ telegram_id: 1, first_name: 'Challenger', value: 100, mode: 'grow' });

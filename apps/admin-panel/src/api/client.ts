@@ -102,17 +102,11 @@ export interface UpdateConditionRequest {
   config?: Record<string, unknown>;
 }
 
-export interface DuelQuestTargetDto {
-  target: number;
-  rewardCm: number;
-}
-
 export interface DuelSettingsDto {
   id: string;
   minDelta: number;
   maxDelta: number;
   isEnabled: boolean;
-  questTargets: DuelQuestTargetDto[];
   challengeTtlMinutes: number;
   maxPendingChallenges: number;
   createdAt: string;
@@ -123,9 +117,43 @@ export interface UpdateDuelSettingsRequest {
   minDelta?: number;
   maxDelta?: number;
   isEnabled?: boolean;
-  questTargets?: DuelQuestTargetDto[];
   challengeTtlMinutes?: number;
   maxPendingChallenges?: number;
+}
+
+export interface AchievementSettingsDto {
+  id: string;
+  isEnabled: boolean;
+  announceEnabled: boolean;
+  rewardMultiplier: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateAchievementSettingsRequest {
+  isEnabled?: boolean;
+  announceEnabled?: boolean;
+  rewardMultiplier?: number;
+}
+
+export interface AchievementDefinitionDto {
+  code: string;
+  emoji: string;
+  name: string;
+  hint: string;
+  category: string;
+  unit: 'count' | 'cm' | 'days';
+  thresholds: number[];
+  rewards: number[];
+}
+
+export interface ResetAchievementsRequest {
+  telegramId?: number;
+  keepCounters?: boolean;
+}
+
+export interface ResetAchievementsResponse {
+  affected: number;
 }
 
 export type RoundThemeSource = 'admin' | 'random_fallback' | 'legacy';
@@ -202,4 +230,14 @@ export const api = {
 
   updateRound: (id: string, body: UpdateRoundRequest) =>
     request<RoundDto>(`/rounds/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getAchievementSettings: () => request<AchievementSettingsDto>('/achievements/settings'),
+
+  updateAchievementSettings: (body: UpdateAchievementSettingsRequest) =>
+    request<AchievementSettingsDto>('/achievements/settings', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getAchievementDefinitions: () => request<AchievementDefinitionDto[]>('/achievements/definitions'),
+
+  resetAchievements: (body: ResetAchievementsRequest) =>
+    request<ResetAchievementsResponse>('/achievements/reset', { method: 'POST', body: JSON.stringify(body) }),
 };

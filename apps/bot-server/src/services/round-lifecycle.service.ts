@@ -6,10 +6,8 @@ import { RoundModel } from '../database/models/round.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import { nowUtc } from '../utils/date.util';
 import { getCurrentRoundNumber, getRoundBounds, getSeasonNumber } from '../utils/season-round.util';
-import { getDuelSettings } from './duel.service';
 import { getOrCreateGameState } from './game-state.service';
-import { assignDuelQuestsForRound } from './quest.service';
-import { takeTop3Snapshots } from './weekly-goals.service';
+import { takeTop3Snapshots } from './round-standings.service';
 
 function pickRandomTheme(): RoundTheme {
   return ROUND_THEMES[Math.floor(Math.random() * ROUND_THEMES.length)];
@@ -120,8 +118,6 @@ export async function initializeRound(
   await gameState.save();
 
   await takeTop3Snapshots(roundNumber, users, chatIds);
-  const duelSettings = await getDuelSettings();
-  await assignDuelQuestsForRound(roundNumber, users, duelSettings.quest_targets);
 
   if (bot) {
     const text = `🎭 Нова тема тижня: ${theme.name}\n${theme.description}`;

@@ -2,11 +2,16 @@ import type { Context } from 'telegraf';
 import { Markup } from 'telegraf';
 import { MODE_SWITCH_COOLDOWN_HOURS } from '../../config/constants';
 import { UserModel, type UserHydratedDocument, type UserMode } from '../../database/models/user.model';
+import { formatUnlocks } from '../../achievements/achievement-announce';
+import { safeBump } from '../../achievements/achievement-progress.service';
+import { getAchievementSettings } from '../../achievements/achievement-settings.service';
+import { safeSync } from '../../achievements/achievement.service';
 import { getDuelWinStats } from '../../services/duel.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemaining, nowUtc } from '../../utils/date.util';
 import { MODE_LABELS, modeSign } from '../../utils/mode.util';
 import { formatCm } from '../../utils/number.util';
+import { userLabel } from '../../utils/user-label.util';
 import { buildStatusView } from './status.command';
 
 function getCallbackData(ctx: Context): string | null {
@@ -140,12 +145,22 @@ export async function handleModeSwitchConfirmAction(ctx: Context): Promise<void>
     console.log('[mode] burn', { telegram_id: from.id, from: user.mode, to: target, burned });
   }
 
+  await safeBump(user.telegram_id, { inc: { 'counters.mode_switches': 1 } });
+
   const duelStats = await getDuelWinStats(from.id);
   const { text, markup } = buildStatusView(updated, duelStats);
   const finalText = mismatched ? `🔥 Згоріло: ${formatCm(burned)} см\n\n${text}` : text;
 
   await ctx.editMessageText(finalText, markup);
   await ctx.answerCbQuery();
+
+  const unlocks = await safeSync(updated.telegram_id);
+  if (unlocks.length) {
+    const settings = await getAchievementSettings();
+    if (settings.announce_enabled) {
+      await ctx.reply(formatUnlocks(userLabel(updated), unlocks));
+    }
+  }
 }
 
 /** bot.action('mode:cancel', ...) - повернутись до звичайного /status, нічого не міняючи. */

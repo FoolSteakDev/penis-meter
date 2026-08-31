@@ -11,6 +11,8 @@
     "seed": "tsx src/database/seed.ts",
     "backfill:rounds": "tsx src/database/backfill-legacy-rounds.ts",
     "backfill:mode-sign": "tsx src/database/backfill-mode-value-sign.ts",
+    "drop:quests": "tsx src/database/drop-quests.ts",
+    "backfill:achievements": "tsx src/database/backfill-achievements.ts",
     "duel:stats": "tsx src/scripts/duel-stats.ts",
     "typecheck": "tsoa spec-and-routes && tsc -p tsconfig.json --noEmit",
     "test": "vitest run",

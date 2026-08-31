@@ -23,13 +23,14 @@ export const MENU_ITEMS: MenuItem[][] = [
     { key: 'round', label: '🎯 Раунд' },
   ],
   [
+    { key: 'ach', label: '🎖 Досягнення' },
     { key: 'duel', label: '⚔️ Дуель' },
-    { key: 'dhist', label: '📜 Історія дуелей' },
   ],
   [
+    { key: 'dhist', label: '📜 Історія дуелей' },
     { key: 'shist', label: '🏅 Чемпіони сезонів' },
-    { key: 'admin', label: '🛠️ Адмінка' },
   ],
+  [{ key: 'admin', label: '🛠️ Адмінка' }],
 ];
 
 /** Повне inline-меню — для /menu і для натискання «📋 Меню». */

@@ -3,6 +3,11 @@ import { message } from 'telegraf/filters';
 import { envConfig, requireBotToken } from '../config/env.config';
 import { recordChatMessage } from '../services/chat-activity.service';
 import { handleAdminCommand } from './commands/admin.command';
+import {
+  handleAchievementsBackAction,
+  handleAchievementsCategoryAction,
+  handleAchievementsCommand,
+} from './commands/achievements.command';
 import { handleDuelHistoryCommand, handleDuelHistoryMeAction } from './commands/duel-history.command';
 import {
   handleDuelAcceptAction,
@@ -57,6 +62,7 @@ const BOT_COMMANDS = [
   { command: 'season_history', description: 'Чемпіони минулих сезонів' },
   { command: 'duel', description: 'Викликати на дуель зі ставкою' },
   { command: 'duel_history', description: 'Історія дуелей цього чату' },
+  { command: 'achievements', description: 'Твої досягнення і прогрес' },
   { command: 'admin', description: 'Відкрити адмін-панель' },
 ];
 
@@ -96,6 +102,7 @@ export function createBot(): Telegraf {
   bot.command('season_history', handleSeasonHistoryCommand);
   bot.command('duel', handleDuelCommand);
   bot.command('duel_history', handleDuelHistoryCommand);
+  bot.command('achievements', handleAchievementsCommand);
   bot.command('admin', handleAdminCommand);
 
   // Має бути ДО registerMenuButtons - інакше bot.hears(...) для кнопок меню
@@ -107,6 +114,9 @@ export function createBot(): Telegraf {
   registerMenuButtons(bot);
 
   bot.action(/^m:\w+$/, handleMenuAction);
+
+  bot.action(/^a:c:\w+:\d+$/, handleAchievementsCategoryAction);
+  bot.action(/^a:back:\d+$/, handleAchievementsBackAction);
 
   bot.action(/^d:pick:\d+:\d+$/, handleDuelPickAction);
   bot.action(/^d:page:\d+:\d+$/, handleDuelPageAction);

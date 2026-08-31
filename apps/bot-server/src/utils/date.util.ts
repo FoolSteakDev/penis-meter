@@ -1,8 +1,10 @@
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { envConfig } from '../config/env.config';
 
 dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export function nowUtc() {
   return dayjs.utc();
@@ -49,4 +51,9 @@ const kyivTimeFormatter = new Intl.DateTimeFormat('uk-UA', {
 /** HH:MM за києвським часом - для «Відповісти можна до {HH:MM}» у виклику на дуель. */
 export function formatKyivTime(date: Date): string {
   return kyivTimeFormatter.format(date);
+}
+
+/** Година доби за київським часом (0..23) — для «нічних» досягнень. */
+export function kyivHour(at: Dayjs = nowUtc()): number {
+  return Number(at.tz('Europe/Kyiv').format('H'));
 }
