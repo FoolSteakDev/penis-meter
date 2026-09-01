@@ -24,12 +24,13 @@ export const MENU_ITEMS: MenuItem[][] = [
   ],
   [
     { key: 'ach', label: '🎖 Досягнення' },
-    { key: 'duel', label: '⚔️ Дуель' },
+    { key: 'quest', label: '🧭 Квести' },
   ],
   [
+    { key: 'duel', label: '⚔️ Дуель' },
     { key: 'dhist', label: '📜 Історія дуелей' },
-    { key: 'shist', label: '🏅 Чемпіони сезонів' },
   ],
+  [{ key: 'shist', label: '🏅 Чемпіони сезонів' }],
   [{ key: 'admin', label: '🛠️ Адмінка' }],
 ];
 

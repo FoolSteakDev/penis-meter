@@ -7,6 +7,7 @@ import { formatUnlocks } from '../achievements/achievement-announce';
 import { safeBump } from '../achievements/achievement-progress.service';
 import { getAchievementSettings } from '../achievements/achievement-settings.service';
 import { safeSync } from '../achievements/achievement.service';
+import { safeQuestEvent } from '../quests/quest.service';
 import { nowUtc } from '../utils/date.util';
 import { progress } from '../utils/mode.util';
 import { formatCm, formatCmSigned, roundCm } from '../utils/number.util';
@@ -130,6 +131,21 @@ async function announceAchievementUnlocks(
   }
   for (const { telegramId } of standings.climbers) {
     await safeBump(telegramId, { inc: { 'counters.climber_entries': 1 } });
+  }
+
+  // round_growth ще не скинутий (resetRoundCounters() - нижче в processRoundTransitions),
+  // тож це справжній приріст за щойно завершений раунд.
+  for (const user of users) {
+    for (const chatId of user.chats) {
+      const top3 = standings.top3ByChat.get(chatId);
+      const top3Index = top3 ? top3.indexOf(user.telegram_id) : -1;
+      void safeQuestEvent(user.telegram_id, {
+        type: 'round_finished',
+        chatId,
+        rank: top3Index >= 0 ? top3Index + 1 : null,
+        roundGrowth: progress(user.round_growth, user.mode),
+      });
+    }
   }
 
   const settings = await getAchievementSettings();

@@ -5,6 +5,7 @@ import { DuelHistoryModel, type DuelHistoryHydratedDocument } from '../database/
 import { DuelSettingsModel, type DuelSettingsHydratedDocument } from '../database/models/duel-settings.model';
 import { UserModel, type UserHydratedDocument } from '../database/models/user.model';
 import { safeBump, syncWinStreakBest } from '../achievements/achievement-progress.service';
+import { safeQuestEvent } from '../quests/quest.service';
 import { challengerWinsCoinFlip } from '../utils/duel-coin.util';
 import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
@@ -420,6 +421,30 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   });
 
   await syncWinStreakBest(winner.telegram_id);
+
+  const challengerProgress = progress(challenger.value, challenger.mode);
+  const targetProgress = progress(target.value, target.mode);
+
+  void safeQuestEvent(claimed.challenger_telegram_id, {
+    type: 'duel_finished',
+    chatId: claimed.chat_id,
+    opponentTelegramId: claimed.target_telegram_id,
+    won: winnerIsChallenger,
+    stake: amount,
+    initiated: true,
+    opponentProgress: targetProgress,
+    selfProgress: challengerProgress,
+  });
+  void safeQuestEvent(claimed.target_telegram_id, {
+    type: 'duel_finished',
+    chatId: claimed.chat_id,
+    opponentTelegramId: claimed.challenger_telegram_id,
+    won: !winnerIsChallenger,
+    stake: amount,
+    initiated: false,
+    opponentProgress: challengerProgress,
+    selfProgress: targetProgress,
+  });
 
   const loserApplied = roundCm(Math.abs(updatedLoser.value - loserBeforeDelta.value));
 

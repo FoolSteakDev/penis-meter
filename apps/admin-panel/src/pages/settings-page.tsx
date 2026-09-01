@@ -4,17 +4,20 @@ import {
   type AchievementDefinitionDto,
   type AchievementSettingsDto,
   type DuelSettingsDto,
+  type QuestSettingsDto,
+  type QuestStatsEntryDto,
 } from "../api/client";
 import { EditableNumberField } from "../components/editable-number-field";
 import { ToggleSwitch } from "../components/toggle-switch";
 import RoundsPage from "./rounds-page";
 
-type SettingsTab = "duels" | "rounds" | "achievements";
+type SettingsTab = "duels" | "rounds" | "achievements" | "quests";
 
 const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
   { id: "duels", label: "⚔️ Дуелі" },
   { id: "rounds", label: "📅 Раунди" },
   { id: "achievements", label: "🎖 Досягнення" },
+  { id: "quests", label: "🧭 Квести" },
 ];
 
 export default function SettingsPage() {
@@ -42,6 +45,7 @@ export default function SettingsPage() {
         {settingsTab === "duels" && <DuelSettingsPanel />}
         {settingsTab === "rounds" && <RoundsPage />}
         {settingsTab === "achievements" && <AchievementSettingsPanel />}
+        {settingsTab === "quests" && <QuestSettingsPanel />}
       </div>
     </div>
   );
@@ -363,6 +367,250 @@ function AchievementSettingsPanel() {
               }`}
             >
               {confirmArmed ? "Точно скинути? Клікни ще раз" : "Скинути досягнення"}
+            </button>
+
+            {resetMessage && <p className="mt-2 text-sm text-navy/70">{resetMessage}</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestSettingsPanel() {
+  const [settings, setSettings] = useState<QuestSettingsDto | null>(null);
+  const [stats, setStats] = useState<QuestStatsEntryDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [resetScope, setResetScope] = useState<ResetScope>("all");
+  const [resetTelegramId, setResetTelegramId] = useState("");
+  const [confirmArmed, setConfirmArmed] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!confirmArmed) return;
+    const timeout = setTimeout(() => setConfirmArmed(false), RESET_CONFIRM_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
+  }, [confirmArmed]);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const [nextSettings, nextStats] = await Promise.all([api.getQuestSettings(), api.getQuestStats()]);
+      setSettings(nextSettings);
+      setStats(nextStats);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetClick() {
+    if (!confirmArmed) {
+      setConfirmArmed(true);
+      return;
+    }
+
+    setConfirmArmed(false);
+    setResetting(true);
+    setError(null);
+    setResetMessage(null);
+    try {
+      const telegramId = resetScope === "one" && resetTelegramId.trim() !== "" ? Number(resetTelegramId) : undefined;
+      const { affected } = await api.resetQuests({ telegramId });
+      setResetMessage(`Скинуто лічильники: ${affected} гравців`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  if (loading) {
+    return <p className="text-navy/60">Завантаження...</p>;
+  }
+
+  return (
+    <div className="space-y-8">
+      {error && (
+        <p className="rounded-lg border border-ruby/20 bg-ruby/10 px-4 py-2 text-sm text-ruby">{error}</p>
+      )}
+
+      {settings && (
+        <div className="rounded-xl border border-navy/10 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-navy">🧭 Квести</h2>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 py-1.5">
+            <span className="text-sm font-medium text-navy">Квести увімкнені</span>
+            <ToggleSwitch
+              checked={settings.isEnabled}
+              onSave={async (isEnabled) => {
+                const updated = await api.updateQuestSettings({ isEnabled });
+                setSettings(updated);
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-2 py-1.5">
+            <span className="text-sm font-medium text-navy">Анонсувати старт/фініш у чат</span>
+            <ToggleSwitch
+              checked={settings.announceEnabled}
+              onSave={async (announceEnabled) => {
+                const updated = await api.updateQuestSettings({ announceEnabled });
+                setSettings(updated);
+              }}
+            />
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 text-sm font-medium text-navy">
+            Множник нагород
+            <EditableNumberField
+              value={settings.rewardMultiplier}
+              step="0.1"
+              size="sm"
+              onSave={async (rewardMultiplier) => {
+                const updated = await api.updateQuestSettings({ rewardMultiplier });
+                setSettings(updated);
+              }}
+            />
+            <span className="text-xs text-navy/50">(0–5, дефолт 1)</span>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 text-sm font-medium text-navy">
+            Множник штрафів
+            <EditableNumberField
+              value={settings.penaltyMultiplier}
+              step="0.1"
+              size="sm"
+              onSave={async (penaltyMultiplier) => {
+                const updated = await api.updateQuestSettings({ penaltyMultiplier });
+                setSettings(updated);
+              }}
+            />
+            <span className="text-xs text-navy/50">(0–5, дефолт 1)</span>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 text-sm font-medium text-navy">
+            Ліміт активних квестів
+            <EditableNumberField
+              value={settings.maxActiveQuests}
+              step="1"
+              size="sm"
+              onSave={async (maxActiveQuests) => {
+                const updated = await api.updateQuestSettings({ maxActiveQuests });
+                setSettings(updated);
+              }}
+            />
+            <span className="text-xs text-navy/50">(0 = без обмежень)</span>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 text-sm font-medium text-navy">
+            Нагадування за
+            <EditableNumberField
+              value={settings.reminderBeforeMinutes}
+              step="5"
+              size="sm"
+              onSave={async (reminderBeforeMinutes) => {
+                const updated = await api.updateQuestSettings({ reminderBeforeMinutes });
+                setSettings(updated);
+              }}
+            />
+            <span className="text-xs text-navy/50">хв до дедлайну (0 = без нагадувань)</span>
+          </div>
+
+          <div className="mt-6 border-t border-navy/10 pt-5">
+            <h3 className="mb-1 text-sm font-bold text-navy">Зведення по квестах</h3>
+            <p className="mb-3 text-xs text-navy/60">Узято / виконано / провалено / скасовано / середній час до закриття.</p>
+            <div className="max-h-96 overflow-y-auto rounded-md border border-navy/10">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-cream-dark text-navy/70">
+                  <tr>
+                    <th className="px-3 py-2">Квест</th>
+                    <th className="px-3 py-2">Узято</th>
+                    <th className="px-3 py-2">Виконано</th>
+                    <th className="px-3 py-2">Провалено</th>
+                    <th className="px-3 py-2">Скасовано</th>
+                    <th className="px-3 py-2">Сер. час, хв</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.map((entry) => (
+                    <tr key={entry.code} className="border-t border-navy/5">
+                      <td className="px-3 py-1.5 font-medium text-navy">
+                        {entry.emoji} {entry.name}
+                      </td>
+                      <td className="px-3 py-1.5 text-navy">{entry.taken}</td>
+                      <td className="px-3 py-1.5 text-navy">{entry.completed}</td>
+                      <td className="px-3 py-1.5 text-navy">{entry.failed}</td>
+                      <td className="px-3 py-1.5 text-navy">{entry.cancelled}</td>
+                      <td className="px-3 py-1.5 text-navy">
+                        {entry.averageResolutionMinutes === null ? "—" : Math.round(entry.averageResolutionMinutes)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-lg border border-ruby/30 bg-ruby/5 p-4">
+            <h3 className="mb-1 text-sm font-bold text-ruby">Небезпечна зона</h3>
+            <p className="mb-3 text-xs text-navy/60">
+              Скидає лічильники quests_completed/quests_failed/quest_streak (у прогресі досягнень). Журнал взятих
+              квестів (quest_assignments) не чіпається — він незнищуваний.
+            </p>
+
+            <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-navy">
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="quest-reset-scope"
+                  checked={resetScope === "all"}
+                  onChange={() => setResetScope("all")}
+                />
+                Усім гравцям
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="quest-reset-scope"
+                  checked={resetScope === "one"}
+                  onChange={() => setResetScope("one")}
+                />
+                Одному гравцю
+              </label>
+              {resetScope === "one" && (
+                <input
+                  type="number"
+                  placeholder="telegram_id"
+                  value={resetTelegramId}
+                  onChange={(e) => setResetTelegramId(e.target.value)}
+                  className="w-32 rounded-md border border-navy/20 px-2 py-1 text-sm text-navy focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/40"
+                />
+              )}
+            </div>
+
+            <button
+              type="button"
+              disabled={resetting || (resetScope === "one" && resetTelegramId.trim() === "")}
+              onClick={handleResetClick}
+              className={`rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:bg-navy/10 disabled:text-navy/30 ${
+                confirmArmed
+                  ? "bg-ruby text-white hover:bg-ruby/90"
+                  : "border border-ruby/40 text-ruby hover:bg-ruby/10"
+              }`}
+            >
+              {confirmArmed ? "Точно скинути? Клікни ще раз" : "Скинути лічильники квестів"}
             </button>
 
             {resetMessage && <p className="mt-2 text-sm text-navy/70">{resetMessage}</p>}

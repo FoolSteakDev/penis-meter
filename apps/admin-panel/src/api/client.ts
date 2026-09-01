@@ -182,6 +182,119 @@ export interface UpdateRoundRequest {
   conditionChance?: number | null;
 }
 
+export type QuestCategory = 'restraint' | 'precision' | 'position' | 'luck' | 'duel';
+export type QuestKind = 'reach' | 'avoid' | 'hold';
+
+export interface QuestDto {
+  id: string;
+  code: string;
+  emoji: string;
+  name: string;
+  description: string;
+  category: QuestCategory;
+  rule: string;
+  target: number;
+  params: Record<string, unknown>;
+  durationMinutes: number;
+  rewardCm: number;
+  penaltyCm: number;
+  cooldownHours: number;
+  isEnabled: boolean;
+  sortOrder: number;
+  activeAssignments: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateQuestRequest {
+  code: string;
+  emoji?: string;
+  name: string;
+  description: string;
+  category: QuestCategory;
+  rule: string;
+  target?: number;
+  params?: Record<string, unknown>;
+  durationMinutes: number;
+  rewardCm: number;
+  penaltyCm: number;
+  cooldownHours?: number;
+  isEnabled?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateQuestRequest {
+  emoji?: string;
+  name?: string;
+  description?: string;
+  category?: QuestCategory;
+  rule?: string;
+  target?: number;
+  params?: Record<string, unknown>;
+  durationMinutes?: number;
+  rewardCm?: number;
+  penaltyCm?: number;
+  cooldownHours?: number;
+  isEnabled?: boolean;
+  sortOrder?: number;
+}
+
+export interface QuestRuleParamDto {
+  key: string;
+  label: string;
+  type: 'number' | 'string_list';
+  required: boolean;
+  hint?: string;
+}
+
+export interface QuestRuleDto {
+  code: string;
+  label: string;
+  kind: QuestKind;
+  unit: 'count' | 'cm' | 'none';
+  params: QuestRuleParamDto[];
+}
+
+export interface QuestSettingsDto {
+  id: string;
+  isEnabled: boolean;
+  announceEnabled: boolean;
+  rewardMultiplier: number;
+  penaltyMultiplier: number;
+  maxActiveQuests: number;
+  reminderBeforeMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateQuestSettingsRequest {
+  isEnabled?: boolean;
+  announceEnabled?: boolean;
+  rewardMultiplier?: number;
+  penaltyMultiplier?: number;
+  maxActiveQuests?: number;
+  reminderBeforeMinutes?: number;
+}
+
+export interface QuestStatsEntryDto {
+  code: string;
+  emoji: string;
+  name: string;
+  taken: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  averageResolutionMinutes: number | null;
+}
+
+export interface ResetQuestsRequest {
+  telegramId?: number;
+}
+
+export interface ResetQuestsResponse {
+  affected: number;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -240,4 +353,26 @@ export const api = {
 
   resetAchievements: (body: ResetAchievementsRequest) =>
     request<ResetAchievementsResponse>('/achievements/reset', { method: 'POST', body: JSON.stringify(body) }),
+
+  listQuests: () => request<QuestDto[]>('/quests'),
+
+  listQuestRules: () => request<QuestRuleDto[]>('/quests/rules'),
+
+  createQuest: (body: CreateQuestRequest) =>
+    request<QuestDto>('/quests', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateQuest: (id: string, body: UpdateQuestRequest) =>
+    request<QuestDto>(`/quests/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteQuest: (id: string) => request<void>(`/quests/${id}`, { method: 'DELETE' }),
+
+  getQuestSettings: () => request<QuestSettingsDto>('/quests/settings'),
+
+  updateQuestSettings: (body: UpdateQuestSettingsRequest) =>
+    request<QuestSettingsDto>('/quests/settings', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getQuestStats: () => request<QuestStatsEntryDto[]>('/quests/stats'),
+
+  resetQuests: (body: ResetQuestsRequest) =>
+    request<ResetQuestsResponse>('/quests/reset', { method: 'POST', body: JSON.stringify(body) }),
 };

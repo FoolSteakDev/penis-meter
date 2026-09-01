@@ -53,7 +53,25 @@ export function formatKyivTime(date: Date): string {
   return kyivTimeFormatter.format(date);
 }
 
+const kyivDateTimeFormatter = new Intl.DateTimeFormat('uk-UA', {
+  timeZone: 'Europe/Kyiv',
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** ДД.MM ГГ:ХХ за києвським часом - для дедлайну квесту («до 03.09 14:20»). */
+export function formatKyivDateTime(date: Date): string {
+  return kyivDateTimeFormatter.format(date).replace(',', '');
+}
+
 /** Година доби за київським часом (0..23) — для «нічних» досягнень. */
 export function kyivHour(at: Dayjs = nowUtc()): number {
   return Number(at.tz('Europe/Kyiv').format('H'));
+}
+
+/** Календарний день за київським часом ('YYYY-MM-DD') — для distinct-правил квестів. */
+export function kyivDay(at: Dayjs = nowUtc()): string {
+  return at.tz('Europe/Kyiv').format('YYYY-MM-DD');
 }

@@ -6,6 +6,7 @@ import { formatUnlocks } from '../../achievements/achievement-announce';
 import { safeBump } from '../../achievements/achievement-progress.service';
 import { getAchievementSettings } from '../../achievements/achievement-settings.service';
 import { safeSync } from '../../achievements/achievement.service';
+import { safeQuestEvent } from '../../quests/quest.service';
 import { getDuelWinStats } from '../../services/duel.service';
 import { findOrCreateUser } from '../../services/user.service';
 import { formatRemaining, nowUtc } from '../../utils/date.util';
@@ -146,6 +147,10 @@ export async function handleModeSwitchConfirmAction(ctx: Context): Promise<void>
   }
 
   await safeBump(user.telegram_id, { inc: { 'counters.mode_switches': 1 } });
+
+  if (ctx.chat) {
+    void safeQuestEvent(user.telegram_id, { type: 'mode_switch', chatId: ctx.chat.id, to: target });
+  }
 
   const duelStats = await getDuelWinStats(from.id);
   const { text, markup } = buildStatusView(updated, duelStats);

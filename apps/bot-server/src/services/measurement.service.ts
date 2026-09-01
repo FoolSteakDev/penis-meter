@@ -17,12 +17,13 @@ import { modifierRegistry } from '../modifiers/modifier.registry';
 import type { GrowthModifierContext } from '../modifiers/growth-modifier.types';
 import { getActiveTheme, getThemeOverrideForCondition } from './game-state.service';
 import { ensureRoundInitialized } from './round-lifecycle.service';
-import { kyivHour, nowUtc } from '../utils/date.util';
+import { kyivDay, kyivHour, nowUtc } from '../utils/date.util';
 import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { createTtlCache } from '../utils/ttl-cache.util';
 import { buildClampedValueUpdate } from '../utils/value-update.util';
 import { safeBump } from '../achievements/achievement-progress.service';
+import { safeQuestEvent } from '../quests/quest.service';
 
 /** Паралельний вимір того самого юзера вже пройшов CAS-перевірку раніше за цей. */
 export class ConcurrentMeasurementError extends Error {
@@ -221,6 +222,21 @@ export async function performMeasurement(
       'counters.best_round_measurement_count': updated.round_measurement_count,
     },
     min: { 'counters.worst_progress_delta': appliedProgress },
+  });
+
+  void safeQuestEvent(user.telegram_id, {
+    type: 'measurement',
+    chatId,
+    progressDelta: appliedProgress,
+    conditionCode: resolved.condition.code === BASE_CONDITION_CODE ? null : resolved.condition.code,
+    isNight,
+    isPunctual,
+    streakKept: previousMeasurementAt === null || nextStreak > 1,
+    streakCurrent: nextStreak,
+    mode: updated.mode,
+    hasTheme: Boolean(activeTheme),
+    kyivHour: kyivHour(),
+    kyivDay: kyivDay(),
   });
 
   return {

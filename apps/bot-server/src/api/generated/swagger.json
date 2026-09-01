@@ -387,6 +387,450 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"QuestCategory": {
+				"type": "string",
+				"enum": [
+					"restraint",
+					"precision",
+					"position",
+					"luck",
+					"duel"
+				]
+			},
+			"Record_string.unknown_": {
+				"properties": {},
+				"additionalProperties": {},
+				"type": "object",
+				"description": "Construct a type with a set of properties K of type T"
+			},
+			"QuestDto": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"code": {
+						"type": "string"
+					},
+					"emoji": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"category": {
+						"$ref": "#/components/schemas/QuestCategory"
+					},
+					"rule": {
+						"type": "string"
+					},
+					"target": {
+						"type": "number",
+						"format": "double"
+					},
+					"params": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
+					},
+					"durationMinutes": {
+						"type": "number",
+						"format": "double"
+					},
+					"rewardCm": {
+						"type": "number",
+						"format": "double"
+					},
+					"penaltyCm": {
+						"type": "number",
+						"format": "double"
+					},
+					"cooldownHours": {
+						"type": "number",
+						"format": "double"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"sortOrder": {
+						"type": "number",
+						"format": "double"
+					},
+					"activeAssignments": {
+						"type": "number",
+						"format": "double",
+						"description": "Скільки зараз активних призначень цього визначення - адмінка показує «зміни застосуються до нових взять»."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"code",
+					"emoji",
+					"name",
+					"description",
+					"category",
+					"rule",
+					"target",
+					"params",
+					"durationMinutes",
+					"rewardCm",
+					"penaltyCm",
+					"cooldownHours",
+					"isEnabled",
+					"sortOrder",
+					"activeAssignments",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"QuestKind": {
+				"type": "string",
+				"enum": [
+					"reach",
+					"avoid",
+					"hold"
+				]
+			},
+			"QuestRuleParamDto": {
+				"properties": {
+					"key": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string",
+						"enum": [
+							"number",
+							"string_list"
+						]
+					},
+					"required": {
+						"type": "boolean"
+					},
+					"hint": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"key",
+					"label",
+					"type",
+					"required"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"QuestRuleDto": {
+				"properties": {
+					"code": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"kind": {
+						"$ref": "#/components/schemas/QuestKind"
+					},
+					"unit": {
+						"type": "string",
+						"enum": [
+							"count",
+							"cm",
+							"none"
+						]
+					},
+					"params": {
+						"items": {
+							"$ref": "#/components/schemas/QuestRuleParamDto"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"code",
+					"label",
+					"kind",
+					"unit",
+					"params"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"QuestSettingsDto": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"announceEnabled": {
+						"type": "boolean"
+					},
+					"rewardMultiplier": {
+						"type": "number",
+						"format": "double"
+					},
+					"penaltyMultiplier": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxActiveQuests": {
+						"type": "number",
+						"format": "double"
+					},
+					"reminderBeforeMinutes": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"id",
+					"isEnabled",
+					"announceEnabled",
+					"rewardMultiplier",
+					"penaltyMultiplier",
+					"maxActiveQuests",
+					"reminderBeforeMinutes",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateQuestSettingsRequest": {
+				"properties": {
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"announceEnabled": {
+						"type": "boolean"
+					},
+					"rewardMultiplier": {
+						"type": "number",
+						"format": "double"
+					},
+					"penaltyMultiplier": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxActiveQuests": {
+						"type": "number",
+						"format": "double"
+					},
+					"reminderBeforeMinutes": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"QuestStatsEntryDto": {
+				"properties": {
+					"code": {
+						"type": "string"
+					},
+					"emoji": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"taken": {
+						"type": "number",
+						"format": "double"
+					},
+					"completed": {
+						"type": "number",
+						"format": "double"
+					},
+					"failed": {
+						"type": "number",
+						"format": "double"
+					},
+					"cancelled": {
+						"type": "number",
+						"format": "double"
+					},
+					"averageResolutionMinutes": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					}
+				},
+				"required": [
+					"code",
+					"emoji",
+					"name",
+					"taken",
+					"completed",
+					"failed",
+					"cancelled",
+					"averageResolutionMinutes"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResetQuestsResponse": {
+				"properties": {
+					"affected": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"affected"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResetQuestsRequest": {
+				"properties": {
+					"telegramId": {
+						"type": "number",
+						"format": "double",
+						"description": "Кому скидати. Не передано - всім."
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateQuestRequest": {
+				"properties": {
+					"code": {
+						"type": "string"
+					},
+					"emoji": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"category": {
+						"$ref": "#/components/schemas/QuestCategory"
+					},
+					"rule": {
+						"type": "string"
+					},
+					"target": {
+						"type": "number",
+						"format": "double"
+					},
+					"params": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
+					},
+					"durationMinutes": {
+						"type": "number",
+						"format": "double"
+					},
+					"rewardCm": {
+						"type": "number",
+						"format": "double"
+					},
+					"penaltyCm": {
+						"type": "number",
+						"format": "double"
+					},
+					"cooldownHours": {
+						"type": "number",
+						"format": "double"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"sortOrder": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"code",
+					"name",
+					"description",
+					"category",
+					"rule",
+					"durationMinutes",
+					"rewardCm",
+					"penaltyCm"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateQuestRequest": {
+				"properties": {
+					"emoji": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"category": {
+						"$ref": "#/components/schemas/QuestCategory"
+					},
+					"rule": {
+						"type": "string"
+					},
+					"target": {
+						"type": "number",
+						"format": "double"
+					},
+					"params": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
+					},
+					"durationMinutes": {
+						"type": "number",
+						"format": "double"
+					},
+					"rewardCm": {
+						"type": "number",
+						"format": "double"
+					},
+					"penaltyCm": {
+						"type": "number",
+						"format": "double"
+					},
+					"cooldownHours": {
+						"type": "number",
+						"format": "double"
+					},
+					"isEnabled": {
+						"type": "boolean"
+					},
+					"sortOrder": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
 			"DuelSettingsDto": {
 				"properties": {
 					"id": {
@@ -464,12 +908,6 @@
 					"range",
 					"fixed_list"
 				]
-			},
-			"Record_string.unknown_": {
-				"properties": {},
-				"additionalProperties": {},
-				"type": "object",
-				"description": "Construct a type with a set of properties K of type T"
 			},
 			"ConditionDto": {
 				"properties": {
@@ -961,6 +1399,259 @@
 						}
 					}
 				}
+			}
+		},
+		"/quests": {
+			"get": {
+				"operationId": "ListQuests",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/QuestDto"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"post": {
+				"operationId": "CreateQuest",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/QuestDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateQuestRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/quests/rules": {
+			"get": {
+				"operationId": "ListRules",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/QuestRuleDto"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"description": "Каталог правил для форми в адмінці: код, лейбл, kind, unit, опис params.",
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/quests/settings": {
+			"get": {
+				"operationId": "GetSettings",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/QuestSettingsDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"patch": {
+				"operationId": "UpdateSettings",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/QuestSettingsDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateQuestSettingsRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/quests/stats": {
+			"get": {
+				"operationId": "GetStats",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/QuestStatsEntryDto"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/quests/reset": {
+			"post": {
+				"operationId": "Reset",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResetQuestsResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ResetQuestsRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/quests/{id}": {
+			"patch": {
+				"operationId": "UpdateQuest",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/QuestDto"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateQuestRequest"
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "DeleteQuest",
+				"responses": {
+					"204": {
+						"description": "No content"
+					}
+				},
+				"tags": [
+					"Quests"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
 			}
 		},
 		"/duel-settings": {

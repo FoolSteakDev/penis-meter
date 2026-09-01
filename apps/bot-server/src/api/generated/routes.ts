@@ -8,6 +8,8 @@ import { UsersController } from './../controllers/users.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { RoundsController } from './../controllers/rounds.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { QuestsController } from './../controllers/quests.controller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { DuelSettingsController } from './../controllers/duel-settings.controller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ConditionsController } from './../controllers/conditions.controller';
@@ -153,6 +155,171 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestCategory": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["restraint"]},{"dataType":"enum","enums":["precision"]},{"dataType":"enum","enums":["position"]},{"dataType":"enum","enums":["luck"]},{"dataType":"enum","enums":["duel"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Record_string.unknown_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"any"},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestDto": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "code": {"dataType":"string","required":true},
+            "emoji": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"string","required":true},
+            "category": {"ref":"QuestCategory","required":true},
+            "rule": {"dataType":"string","required":true},
+            "target": {"dataType":"double","required":true},
+            "params": {"ref":"Record_string.unknown_","required":true},
+            "durationMinutes": {"dataType":"double","required":true},
+            "rewardCm": {"dataType":"double","required":true},
+            "penaltyCm": {"dataType":"double","required":true},
+            "cooldownHours": {"dataType":"double","required":true},
+            "isEnabled": {"dataType":"boolean","required":true},
+            "sortOrder": {"dataType":"double","required":true},
+            "activeAssignments": {"dataType":"double","required":true},
+            "createdAt": {"dataType":"datetime","required":true},
+            "updatedAt": {"dataType":"datetime","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestKind": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["reach"]},{"dataType":"enum","enums":["avoid"]},{"dataType":"enum","enums":["hold"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestRuleParamDto": {
+        "dataType": "refObject",
+        "properties": {
+            "key": {"dataType":"string","required":true},
+            "label": {"dataType":"string","required":true},
+            "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["number"]},{"dataType":"enum","enums":["string_list"]}],"required":true},
+            "required": {"dataType":"boolean","required":true},
+            "hint": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestRuleDto": {
+        "dataType": "refObject",
+        "properties": {
+            "code": {"dataType":"string","required":true},
+            "label": {"dataType":"string","required":true},
+            "kind": {"ref":"QuestKind","required":true},
+            "unit": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["count"]},{"dataType":"enum","enums":["cm"]},{"dataType":"enum","enums":["none"]}],"required":true},
+            "params": {"dataType":"array","array":{"dataType":"refObject","ref":"QuestRuleParamDto"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestSettingsDto": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "isEnabled": {"dataType":"boolean","required":true},
+            "announceEnabled": {"dataType":"boolean","required":true},
+            "rewardMultiplier": {"dataType":"double","required":true},
+            "penaltyMultiplier": {"dataType":"double","required":true},
+            "maxActiveQuests": {"dataType":"double","required":true},
+            "reminderBeforeMinutes": {"dataType":"double","required":true},
+            "createdAt": {"dataType":"datetime","required":true},
+            "updatedAt": {"dataType":"datetime","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateQuestSettingsRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "isEnabled": {"dataType":"boolean"},
+            "announceEnabled": {"dataType":"boolean"},
+            "rewardMultiplier": {"dataType":"double"},
+            "penaltyMultiplier": {"dataType":"double"},
+            "maxActiveQuests": {"dataType":"double"},
+            "reminderBeforeMinutes": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QuestStatsEntryDto": {
+        "dataType": "refObject",
+        "properties": {
+            "code": {"dataType":"string","required":true},
+            "emoji": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+            "taken": {"dataType":"double","required":true},
+            "completed": {"dataType":"double","required":true},
+            "failed": {"dataType":"double","required":true},
+            "cancelled": {"dataType":"double","required":true},
+            "averageResolutionMinutes": {"dataType":"union","subSchemas":[{"dataType":"double"},{"dataType":"enum","enums":[null]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ResetQuestsResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "affected": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ResetQuestsRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "telegramId": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CreateQuestRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "code": {"dataType":"string","required":true},
+            "emoji": {"dataType":"string"},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"string","required":true},
+            "category": {"ref":"QuestCategory","required":true},
+            "rule": {"dataType":"string","required":true},
+            "target": {"dataType":"double"},
+            "params": {"ref":"Record_string.unknown_"},
+            "durationMinutes": {"dataType":"double","required":true},
+            "rewardCm": {"dataType":"double","required":true},
+            "penaltyCm": {"dataType":"double","required":true},
+            "cooldownHours": {"dataType":"double"},
+            "isEnabled": {"dataType":"boolean"},
+            "sortOrder": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateQuestRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "emoji": {"dataType":"string"},
+            "name": {"dataType":"string"},
+            "description": {"dataType":"string"},
+            "category": {"ref":"QuestCategory"},
+            "rule": {"dataType":"string"},
+            "target": {"dataType":"double"},
+            "params": {"ref":"Record_string.unknown_"},
+            "durationMinutes": {"dataType":"double"},
+            "rewardCm": {"dataType":"double"},
+            "penaltyCm": {"dataType":"double"},
+            "cooldownHours": {"dataType":"double"},
+            "isEnabled": {"dataType":"boolean"},
+            "sortOrder": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "DuelSettingsDto": {
         "dataType": "refObject",
         "properties": {
@@ -183,11 +350,6 @@ const models: TsoaRoute.Models = {
     "DeltaMode": {
         "dataType": "refAlias",
         "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["range"]},{"dataType":"enum","enums":["fixed_list"]}],"validators":{}},
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "Record_string.unknown_": {
-        "dataType": "refAlias",
-        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"any"},"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ConditionDto": {
@@ -457,6 +619,273 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'updateRound',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_listQuests: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/quests',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.listQuests)),
+
+            async function QuestsController_listQuests(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_listQuests, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'listQuests',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_listRules: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/quests/rules',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.listRules)),
+
+            async function QuestsController_listRules(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_listRules, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'listRules',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_getSettings: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/quests/settings',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.getSettings)),
+
+            async function QuestsController_getSettings(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_getSettings, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'getSettings',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_updateSettings: Record<string, TsoaRoute.ParameterSchema> = {
+                body: {"in":"body","name":"body","required":true,"ref":"UpdateQuestSettingsRequest"},
+        };
+        app.patch('/quests/settings',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.updateSettings)),
+
+            async function QuestsController_updateSettings(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_updateSettings, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'updateSettings',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_getStats: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/quests/stats',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.getStats)),
+
+            async function QuestsController_getStats(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_getStats, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'getStats',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_reset: Record<string, TsoaRoute.ParameterSchema> = {
+                body: {"in":"body","name":"body","required":true,"ref":"ResetQuestsRequest"},
+        };
+        app.post('/quests/reset',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.reset)),
+
+            async function QuestsController_reset(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_reset, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'reset',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_createQuest: Record<string, TsoaRoute.ParameterSchema> = {
+                body: {"in":"body","name":"body","required":true,"ref":"CreateQuestRequest"},
+        };
+        app.post('/quests',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.createQuest)),
+
+            async function QuestsController_createQuest(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_createQuest, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'createQuest',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_updateQuest: Record<string, TsoaRoute.ParameterSchema> = {
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"UpdateQuestRequest"},
+        };
+        app.patch('/quests/:id',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.updateQuest)),
+
+            async function QuestsController_updateQuest(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_updateQuest, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'updateQuest',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsQuestsController_deleteQuest: Record<string, TsoaRoute.ParameterSchema> = {
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+        };
+        app.delete('/quests/:id',
+            ...(fetchMiddlewares<RequestHandler>(QuestsController)),
+            ...(fetchMiddlewares<RequestHandler>(QuestsController.prototype.deleteQuest)),
+
+            async function QuestsController_deleteQuest(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsQuestsController_deleteQuest, request, response });
+
+                const controller = new QuestsController();
+
+              await templateService.apiHandler({
+                methodName: 'deleteQuest',
                 controller,
                 response,
                 next,

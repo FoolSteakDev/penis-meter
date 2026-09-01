@@ -6,6 +6,7 @@ import { handleAdminCommand } from './admin.command';
 import { handleDuelCommand } from './duel.command';
 import { handleGlobalRatingCommand } from './global-rating.command';
 import { handleMetrCommand } from './metr.command';
+import { handleQuestsCommand } from './quests.command';
 import { handleRatingCommand } from './rating.command';
 import { handleRoundCommand } from './round.command';
 import { handleSeasonCommand } from './season.command';
@@ -23,6 +24,7 @@ export const MENU_HANDLERS: Record<string, MenuHandler> = {
   season: handleSeasonCommand,
   round: handleRoundCommand,
   ach: handleAchievementsCommand,
+  quest: handleQuestsCommand,
   duel: handleDuelCommand,
   dhist: handleDuelHistoryCommand,
   shist: handleSeasonHistoryCommand,

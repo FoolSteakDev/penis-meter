@@ -1,6 +1,8 @@
 import { connectMongo } from './mongo.connection';
 import { ConditionModel } from './models/condition.model';
 import { DuelSettingsModel } from './models/duel-settings.model';
+import { QuestModel } from './models/quest.model';
+import { QUEST_SEED } from '../quests/quest-seed.data';
 
 interface SeedCondition {
   code: string;
@@ -98,6 +100,47 @@ const SEED_CONDITIONS: SeedCondition[] = [
   },
 ];
 
+/**
+ * Колекція `quests` - та сама, що дропнув database/drop-quests.ts при демонтажі
+ * старої Quest-сутності. Схема інша й несумісна - якщо в колекції лишились
+ * документи без поля `rule` (залишки старої моделі), сид падає з поясненням
+ * замість того, щоб мовчки домішати їх до нових.
+ */
+async function seedQuests(): Promise<void> {
+  const legacy = await QuestModel.collection.countDocuments({ rule: { $exists: false } });
+  if (legacy > 0) {
+    throw new Error(`Колекція quests містить ${legacy} документів старої схеми - почисти перед сидом`);
+  }
+
+  for (const [index, quest] of QUEST_SEED.entries()) {
+    await QuestModel.updateOne(
+      { code: quest.code },
+      {
+        $set: {
+          emoji: quest.emoji,
+          name: quest.name,
+          description: quest.description,
+          category: quest.category,
+          rule: quest.rule,
+          target: quest.target,
+          params: quest.params,
+          duration_minutes: quest.duration_minutes,
+          reward_cm: quest.reward_cm,
+          penalty_cm: quest.penalty_cm,
+          cooldown_hours: quest.cooldown_hours,
+          sort_order: index,
+        },
+        // is_enabled НЕ перебиваємо при апдейті - якщо адмін вимкнув квест
+        // вручну, повторний сид не має мовчки повертати його назад.
+        $setOnInsert: { is_enabled: true },
+      },
+      { upsert: true },
+    );
+  }
+
+  console.log(`[seed] ensured ${QUEST_SEED.length} quests exist`);
+}
+
 async function seed(): Promise<void> {
   await connectMongo();
 
@@ -135,6 +178,8 @@ async function seed(): Promise<void> {
     { upsert: true },
   );
   console.log('[seed] ensured duel settings exist');
+
+  await seedQuests();
 
   process.exit(0);
 }

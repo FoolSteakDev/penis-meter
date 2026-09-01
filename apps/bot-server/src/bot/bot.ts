@@ -2,6 +2,7 @@ import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { envConfig, requireBotToken } from '../config/env.config';
 import { recordChatMessage } from '../services/chat-activity.service';
+import { setBotInstance } from './bot-instance';
 import { handleAdminCommand } from './commands/admin.command';
 import {
   handleAchievementsBackAction,
@@ -35,6 +36,15 @@ import {
   handleModeSwitchConfirmAction,
   handleModeSwitchPromptAction,
 } from './commands/mode.command';
+import {
+  handleQuestsAcceptAction,
+  handleQuestsBackAction,
+  handleQuestsCancelConfirmAction,
+  handleQuestsCancelPromptAction,
+  handleQuestsCategoryAction,
+  handleQuestsCommand,
+  handleQuestsConfirmAction,
+} from './commands/quests.command';
 import { handleRatingCommand } from './commands/rating.command';
 import { handleRoundCommand } from './commands/round.command';
 import { handleSeasonCommand } from './commands/season.command';
@@ -63,6 +73,7 @@ const BOT_COMMANDS = [
   { command: 'duel', description: 'Викликати на дуель зі ставкою' },
   { command: 'duel_history', description: 'Історія дуелей цього чату' },
   { command: 'achievements', description: 'Твої досягнення і прогрес' },
+  { command: 'quests', description: 'Взяти квест і подивитись активні' },
   { command: 'admin', description: 'Відкрити адмін-панель' },
 ];
 
@@ -103,6 +114,7 @@ export function createBot(): Telegraf {
   bot.command('duel', handleDuelCommand);
   bot.command('duel_history', handleDuelHistoryCommand);
   bot.command('achievements', handleAchievementsCommand);
+  bot.command('quests', handleQuestsCommand);
   bot.command('admin', handleAdminCommand);
 
   // Має бути ДО registerMenuButtons - інакше bot.hears(...) для кнопок меню
@@ -117,6 +129,13 @@ export function createBot(): Telegraf {
 
   bot.action(/^a:c:\w+:\d+$/, handleAchievementsCategoryAction);
   bot.action(/^a:back:\d+$/, handleAchievementsBackAction);
+
+  bot.action(/^q:back:\d+$/, handleQuestsBackAction);
+  bot.action(/^q:c:\w+:\d+$/, handleQuestsCategoryAction);
+  bot.action(/^q:p:[a-z][a-z0-9_]{1,23}:\d+$/, handleQuestsConfirmAction);
+  bot.action(/^q:go:[a-z][a-z0-9_]{1,23}:\d+$/, handleQuestsAcceptAction);
+  bot.action(/^q:x:[a-f0-9]{24}$/, handleQuestsCancelPromptAction);
+  bot.action(/^q:xy:[a-f0-9]{24}$/, handleQuestsCancelConfirmAction);
 
   bot.action(/^d:pick:\d+:\d+$/, handleDuelPickAction);
   bot.action(/^d:page:\d+:\d+$/, handleDuelPageAction);
@@ -145,6 +164,8 @@ export function createBot(): Telegraf {
   bot.catch((error, ctx) => {
     console.error(`[bot] error while handling update ${ctx.updateType}`, error);
   });
+
+  setBotInstance(bot);
 
   return bot;
 }

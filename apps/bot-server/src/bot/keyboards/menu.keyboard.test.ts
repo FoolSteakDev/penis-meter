@@ -4,10 +4,10 @@ import { MENU_HANDLERS } from '../commands/menu.command';
 import { buildInlineMenu, buildStickyMenuRow, MENU_ITEMS, replyWithMenu } from './menu.keyboard';
 
 describe('buildInlineMenu', () => {
-  it('contains exactly 11 buttons', () => {
+  it('contains exactly 12 buttons', () => {
     const markup = buildInlineMenu();
     const total = markup.reply_markup.inline_keyboard.reduce((sum, row) => sum + row.length, 0);
-    expect(total).toBe(11);
+    expect(total).toBe(12);
   });
 
   it('keeps every callback_data within the 64-byte Telegram limit', () => {
