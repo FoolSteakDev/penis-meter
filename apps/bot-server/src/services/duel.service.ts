@@ -7,6 +7,7 @@ import { UserModel, type UserHydratedDocument } from '../database/models/user.mo
 import { safeBump, syncWinStreakBest } from '../achievements/achievement-progress.service';
 import { safeQuestEvent } from '../quests/quest.service';
 import { challengerWinsCoinFlip } from '../utils/duel-coin.util';
+import { resolveRematchStake } from '../utils/duel-rematch.util';
 import { modeSign, progress } from '../utils/mode.util';
 import { roundCm } from '../utils/number.util';
 import { buildClampedValueUpdate } from '../utils/value-update.util';
@@ -140,6 +141,42 @@ export async function getStakeBounds(
 }
 
 /**
+ * Спільна перевірка слоту для нового pending-виклику: ліміт
+ * max_pending_challenges і дубль «ти вже викликав цього гравця». Винесено з
+ * finalizeChallenge, щоб createRematchChallenge (2.4) міг використати ті самі
+ * правила без копіювання.
+ */
+async function assertPendingSlotAvailable(
+  settings: DuelSettingsHydratedDocument,
+  chatId: number,
+  challengerTelegramId: number,
+  targetTelegramId: number,
+): Promise<void> {
+  const pendingCount = await DuelChallengeModel.countDocuments({
+    challenger_telegram_id: challengerTelegramId,
+    status: 'pending',
+    expires_at: { $gt: new Date() },
+  });
+  if (pendingCount >= settings.max_pending_challenges) {
+    throw new Error(
+      `У тебе вже ${settings.max_pending_challenges} активних викликів - дочекайся відповіді або скасуй один`,
+    );
+  }
+
+  // Без цього гравець витратить усі слоти на одну людину й заспамить чат.
+  const duplicate = await DuelChallengeModel.findOne({
+    challenger_telegram_id: challengerTelegramId,
+    target_telegram_id: targetTelegramId,
+    chat_id: chatId,
+    status: 'pending',
+    expires_at: { $gt: new Date() },
+  });
+  if (duplicate) {
+    throw new Error('Ти вже викликав цього гравця - дочекайся відповіді');
+  }
+}
+
+/**
  * Крок 2 -> 'pending': ставку обрано (авто чи власну). Тут, а не при
  * створенні чернетки, перевіряємо ліміт/дублікат - чернетка сама слот не
  * займає, займає лише реальний pending-виклик.
@@ -159,28 +196,7 @@ export async function finalizeChallenge(
 
   const settings = await getDuelSettings();
 
-  const pendingCount = await DuelChallengeModel.countDocuments({
-    challenger_telegram_id: draft.challenger_telegram_id,
-    status: 'pending',
-    expires_at: { $gt: new Date() },
-  });
-  if (pendingCount >= settings.max_pending_challenges) {
-    throw new Error(
-      `У тебе вже ${settings.max_pending_challenges} активних викликів - дочекайся відповіді або скасуй один`,
-    );
-  }
-
-  // Без цього гравець витратить усі слоти на одну людину й заспамить чат.
-  const duplicate = await DuelChallengeModel.findOne({
-    challenger_telegram_id: draft.challenger_telegram_id,
-    target_telegram_id: draft.target_telegram_id,
-    chat_id: draft.chat_id,
-    status: 'pending',
-    expires_at: { $gt: new Date() },
-  });
-  if (duplicate) {
-    throw new Error('Ти вже викликав цього гравця - дочекайся відповіді');
-  }
+  await assertPendingSlotAvailable(settings, draft.chat_id, draft.challenger_telegram_id, draft.target_telegram_id);
 
   const expiresAt = new Date(Date.now() + settings.challenge_ttl_minutes * 60 * 1000);
   const finalized = await DuelChallengeModel.findOneAndUpdate(
@@ -360,6 +376,14 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
   const amount = roundCm(Math.min(claimed.stake, bounds.max));
   const stakeReduced = amount < claimed.stake;
 
+  try {
+    await DuelChallengeModel.updateOne({ _id: claimed._id }, { $set: { resolved_stake: amount } });
+  } catch (error) {
+    // Дуель уже зіграла - не валимо резолюцію через помилку цього апдейту;
+    // реванш просто впаде на фолбек claimed.stake (createRematchChallenge, 2.4).
+    console.error(`[duel] failed to persist resolved_stake for challenge ${claimed.id}`, error);
+  }
+
   const challengerWins = challengerWinsCoinFlip();
   const winner = challengerWins ? challenger : target;
   const loser = challengerWins ? target : challenger;
@@ -391,6 +415,7 @@ export async function resolveChallenge(challengeId: string, respondingTelegramId
     challenger_won: challengerWins,
     requested_stake: claimed.stake,
     quest_reward: null,
+    is_rematch: claimed.rematch_of !== null,
   });
 
   const winnerIsChallenger = challengerWins;
@@ -467,6 +492,96 @@ export async function declineChallenge(
   challenge.status = 'declined';
   await challenge.save();
   return challenge;
+}
+
+export interface RematchCreation {
+  challenge: DuelChallengeHydratedDocument;
+  /** true - ставку зрізали проти минулої дуелі (у когось не вистачає). */
+  stakeReduced: boolean;
+  /** Ставка минулої дуелі - щоб показати «зменшено з X». */
+  previousStake: number;
+}
+
+/**
+ * Реванш - звичайний новий pending-виклик (повз стадію 'draft', бо опонент і
+ * ставка вже відомі), ініціатор якого - той, хто натиснув кнопку 'Реванш' під
+ * результатом зіграної дуелі. Ставка - та, що реально зіграла минулого разу
+ * (resolved_stake), зрізана до максимально можливої, якщо в когось не
+ * вистачає (resolveRematchStake).
+ */
+export async function createRematchChallenge(
+  sourceChallengeId: string,
+  requestingTelegramId: number,
+): Promise<RematchCreation> {
+  const source = await DuelChallengeModel.findById(sourceChallengeId);
+  if (!source) {
+    throw new Error('Ця дуель уже застара - почни нову через /duel');
+  }
+  if (source.status !== 'accepted') {
+    throw new Error('Ця дуель уже застара - почни нову через /duel');
+  }
+  if (
+    requestingTelegramId !== source.challenger_telegram_id &&
+    requestingTelegramId !== source.target_telegram_id
+  ) {
+    throw new Error('Ця кнопка не для тебе');
+  }
+
+  const opponentTelegramId =
+    requestingTelegramId === source.challenger_telegram_id
+      ? source.target_telegram_id
+      : source.challenger_telegram_id;
+
+  const settings = await getDuelSettings();
+  if (!settings.is_enabled) {
+    throw new Error('Дуелі зараз вимкнено адміністратором');
+  }
+
+  // Симетрична перевірка (обидва боки пари) - на відміну від однобічного
+  // дубль-чека в assertPendingSlotAvailable: якщо обидва натиснули "Реванш"
+  // майже одночасно, з цього не повинні народитись два дзеркальні виклики.
+  const activeBetweenPair = await DuelChallengeModel.findOne({
+    chat_id: source.chat_id,
+    status: 'pending',
+    expires_at: { $gt: new Date() },
+    $or: [
+      { challenger_telegram_id: requestingTelegramId, target_telegram_id: opponentTelegramId },
+      { challenger_telegram_id: opponentTelegramId, target_telegram_id: requestingTelegramId },
+    ],
+  });
+  if (activeBetweenPair) {
+    throw new Error('Між вами вже є активний виклик - спочатку розберіться з ним');
+  }
+
+  await assertPendingSlotAvailable(settings, source.chat_id, requestingTelegramId, opponentTelegramId);
+
+  const bounds = await getStakeBounds(requestingTelegramId, opponentTelegramId);
+
+  const baseStake = source.resolved_stake ?? source.stake;
+  if (baseStake === null) {
+    throw new Error('У тієї дуелі не збереглась ставка - почни нову через /duel');
+  }
+  const { stake, reduced } = resolveRematchStake(baseStake, bounds);
+
+  const expiresAt = new Date(Date.now() + settings.challenge_ttl_minutes * 60 * 1000);
+  try {
+    const challenge = await DuelChallengeModel.create({
+      chat_id: source.chat_id,
+      challenger_telegram_id: requestingTelegramId,
+      target_telegram_id: opponentTelegramId,
+      status: 'pending',
+      stake,
+      rematch_of: source._id,
+      expires_at: expiresAt,
+      cleanup_at: new Date(expiresAt.getTime() + CLEANUP_GRACE_MS),
+    });
+    return { challenge, stakeReduced: reduced, previousStake: baseStake };
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: number }).code === 11000) {
+      throw new Error('Реванш уже запущено - дивись виклик у чаті');
+    }
+    throw error;
+  }
 }
 
 export async function getChatDuelHistory(chatId: number): Promise<DuelHistoryHydratedDocument[]> {

@@ -17,6 +17,8 @@ export interface DuelHistoryDocument {
   /** Бонус за квест, доданий переможцю понад ставку - щоб аналіз балансу
    *  не плутав його з виграшем у дуелі. */
   quest_reward: number | null;
+  /** Чи ця дуель стартувала з кнопки "Реванш" (rematch_of у DuelChallenge). Для scripts/duel-stats.ts. */
+  is_rematch: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -33,6 +35,7 @@ const duelHistorySchema = new Schema<DuelHistoryDocument>(
     challenger_won: { type: Boolean, default: null },
     requested_stake: { type: Number, default: null },
     quest_reward: { type: Number, default: null },
+    is_rematch: { type: Boolean, default: false },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

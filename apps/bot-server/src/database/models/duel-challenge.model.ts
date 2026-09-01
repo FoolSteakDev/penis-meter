@@ -31,6 +31,10 @@ export interface DuelChallengeDocument {
   stake_prompt_message_id: number | null;
   /** id повідомлення кроку 1→2 (вибір опонента / вибір ставки) - щоб прибрати його після старту виклику. */
   flow_message_id: number | null;
+  /** Скільки см фактично зіграло в цій дуелі (після перевалідації меж у resolveChallenge). База ставки реваншу. null, поки не 'accepted'. */
+  resolved_stake: number | null;
+  /** Id завершеного виклику, з кнопки якого стартував цей. null для звичайних викликів з /duel. */
+  rematch_of: Schema.Types.ObjectId | null;
   expires_at: Date;
   /** Коли документ фізично видаляється (TTL-індекс) - expires_at + запас на дебаг. */
   cleanup_at: Date;
@@ -56,6 +60,8 @@ const duelChallengeSchema = new Schema<DuelChallengeDocument>(
     invite_message_id: { type: Number, default: null },
     stake_prompt_message_id: { type: Number, default: null },
     flow_message_id: { type: Number, default: null },
+    resolved_stake: { type: Number, default: null },
+    rematch_of: { type: Schema.Types.ObjectId, ref: 'DuelChallenge', default: null },
     expires_at: { type: Date, required: true },
     cleanup_at: { type: Date, required: true },
   },
@@ -69,5 +75,9 @@ duelChallengeSchema.index({ challenger_telegram_id: 1, target_telegram_id: 1, st
 duelChallengeSchema.index({ status: 1, expires_at: 1 });
 duelChallengeSchema.index({ stake_prompt_message_id: 1 }, { sparse: true });
 duelChallengeSchema.index({ cleanup_at: 1 }, { expireAfterSeconds: 0 });
+duelChallengeSchema.index(
+  { rematch_of: 1 },
+  { unique: true, partialFilterExpression: { rematch_of: { $type: 'objectId' }, status: 'pending' } },
+);
 
 export const DuelChallengeModel = model<DuelChallengeDocument>('DuelChallenge', duelChallengeSchema);
