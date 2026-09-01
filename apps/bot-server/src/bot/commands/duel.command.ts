@@ -10,6 +10,7 @@ import {
   cancelChallenge,
   computeAutoStake,
   createDraftChallenge,
+  createRematchChallenge,
   declineChallenge,
   deleteUndeliveredChallenge,
   discardDraft,
@@ -60,6 +61,10 @@ function inviteKeyboard(challengeId: string) {
     ],
     [Markup.button.callback('🚫 Скасувати', `d:cancel:${challengeId}`)],
   ]);
+}
+
+function rematchKeyboard(sourceChallengeId: string) {
+  return Markup.inlineKeyboard([[Markup.button.callback('🔄 Реванш', `d:rev:${sourceChallengeId}`)]]);
 }
 
 /** Крок 1: список опонентів, відсортований за value спадно, посторінково. */
@@ -134,6 +139,7 @@ async function sendChallengeInviteMessage(
   telegram: Context['telegram'],
   chatId: number,
   finalized: DuelChallengeHydratedDocument,
+  rematch?: { previousStake: number; stakeReduced: boolean },
 ): Promise<{ target: Awaited<ReturnType<typeof getUserByTelegramId>> }> {
   const [challenger, target] = await Promise.all([
     getUserByTelegramId(finalized.challenger_telegram_id),
@@ -144,8 +150,13 @@ async function sendChallengeInviteMessage(
   }
 
   const deadline = formatKyivTime(finalized.expires_at);
-  // finalized завжди пройшов finalizeChallenge, тож stake тут вже не null (тип number | null - лише для draft-стадії).
-  const text = `⚔️ ${mentionHtml(challenger)} викликає на дуель ${mentionHtml(target)}!\n💰 Ставка: ${formatCm(finalized.stake as number)} см\n⏳ Відповісти можна до ${deadline} за Києвом`;
+  const intro = rematch
+    ? `🔄 Реванш! ${mentionHtml(challenger)} кличе ${mentionHtml(target)} на другий раунд!`
+    : `⚔️ ${mentionHtml(challenger)} викликає на дуель ${mentionHtml(target)}!`;
+  const reducedNote =
+    rematch?.stakeReduced ? `\n⚠️ Ставку зменшено з ${formatCm(rematch.previousStake)} см - більше зараз не тягне.` : '';
+  // finalized завжди пройшов finalizeChallenge/createRematchChallenge, тож stake тут вже не null (тип number | null - лише для draft-стадії).
+  const text = `${intro}\n💰 Ставка: ${formatCm(finalized.stake as number)} см\n⏳ Відповісти можна до ${deadline} за Києвом${reducedNote}`;
 
   const sent = await telegram.sendMessage(chatId, text, {
     parse_mode: 'HTML',
@@ -501,6 +512,7 @@ export async function handleDuelAcceptAction(ctx: Context): Promise<void> {
     // Про досягнення каже окреме повідомлення нижче (achievements/achievement-announce.ts).
     await ctx.editMessageText(
       `⚔️ Дуель завершена! ${winnerLabel} переміг і забрав ${formatCm(result.amount)} см у ${loserLabel}!${reducedNote}\n📊 ${winnerLabel}: ${formatCm(result.winnerValue)} см · ${loserLabel}: ${formatCm(result.loserValue)} см${clampedNote}`,
+      rematchKeyboard(match[1]),
     );
     await ctx.answerCbQuery();
 
@@ -568,6 +580,59 @@ export async function handleDuelCancelAction(ctx: Context): Promise<void> {
     await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось скасувати виклик', {
       show_alert: true,
     });
+  }
+}
+
+export async function handleDuelRematchAction(ctx: Context): Promise<void> {
+  const data = getCallbackData(ctx);
+  const from = ctx.from;
+  const chat = ctx.chat;
+  if (!data || !from || !chat) {
+    return;
+  }
+
+  const match = /^d:rev:([a-f0-9]{24})$/.exec(data);
+  if (!match) {
+    return;
+  }
+
+  let result: Awaited<ReturnType<typeof createRematchChallenge>>;
+  try {
+    result = await createRematchChallenge(match[1], from.id);
+  } catch (error) {
+    await ctx.answerCbQuery(error instanceof Error ? error.message : 'Не вдалось створити реванш', {
+      show_alert: true,
+    });
+    return;
+  }
+
+  // Спершу знімаємо кнопку з повідомлення-результату (виклик у БД уже
+  // створено), потім шлемо запрошення - інакше між успішним відправленням і
+  // зняттям кнопки лишається вікно на повторний клік.
+  try {
+    await ctx.editMessageReplyMarkup(undefined);
+  } catch (error) {
+    // Повідомлення могли видалити вручну - флоу не повинен зупинятись.
+    console.error(`[duel] failed to clear rematch button on message for challenge ${match[1]}`, error);
+  }
+
+  try {
+    const { target } = await sendChallengeInviteMessage(ctx.telegram, chat.id, result.challenge, {
+      previousStake: result.previousStake,
+      stakeReduced: result.stakeReduced,
+    });
+
+    if (target && !hasReliableMention(target)) {
+      await ctx.answerCbQuery('Опонент без @username - сповіщення може не прийти, штовхни його в чаті', {
+        show_alert: true,
+      });
+    } else {
+      await ctx.answerCbQuery();
+    }
+  } catch (error) {
+    await deleteUndeliveredChallenge(result.challenge.id);
+    console.error(`[duel] failed to deliver rematch invite for challenge ${result.challenge.id}`, error);
+    await ctx.answerCbQuery('Не вдалось надіслати виклик у чат - спробуй ще раз', { show_alert: true });
   }
 }
 

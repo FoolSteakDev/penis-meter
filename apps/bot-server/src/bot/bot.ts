@@ -20,6 +20,7 @@ import {
   handleDuelDeclineAction,
   handleDuelPageAction,
   handleDuelPickAction,
+  handleDuelRematchAction,
   handleDuelStakeReply,
   handleOutdatedDuelAction,
 } from './commands/duel.command';
@@ -145,6 +146,7 @@ export function createBot(): Telegraf {
   bot.action(/^d:acc:[a-f0-9]{24}$/, handleDuelAcceptAction);
   bot.action(/^d:dec:[a-f0-9]{24}$/, handleDuelDeclineAction);
   bot.action(/^d:cancel:[a-f0-9]{24}$/, handleDuelCancelAction);
+  bot.action(/^d:rev:[a-f0-9]{24}$/, handleDuelRematchAction);
   bot.action('duel:history:me', handleDuelHistoryMeAction);
 
   bot.action(/^mode:(grow|drill)$/, handleModeSwitchPromptAction);
